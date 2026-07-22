@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sleep Roulette</string>
+
+    <string name="nav_today">Today</string>
+    <string name="nav_log">Log</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_setup">Setup</string>
+
+    <string name="channel_countdown_name">Sleep countdown</string>
+    <string name="channel_countdown_desc">Ongoing timer from arriving home until bedtime</string>
+    <string name="channel_nudge_name">Bedtime nudges</string>
+    <string name="channel_nudge_desc">Alerts when phone use continues past your goal</string>
+
+    <string name="notif_countdown_title">Sleep window</string>
+    <string name="notif_nudge_title">Still on your phone?</string>
+    <string name="notif_nudge_body">Past your bedtime goal. Put it down and start winding down.</string>
+
+    <string name="welcome_home">Welcome home</string>
+    <string name="goal_bedtime">Goal bedtime</string>
+    <string name="sunrise">Sunrise</string>
+</resources>
