@@ -34,13 +34,8 @@ class GeofenceManager @Inject constructor(
 
     private val geofencePendingIntent: PendingIntent by lazy {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                PendingIntent.FLAG_MUTABLE
-            } else {
-                0
-            }
-        // GeofencingClient requires a mutable PendingIntent on modern APIs.
+        // GeofencingClient mutates the intent extras — FLAG_MUTABLE is required (API 31+).
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         PendingIntent.getBroadcast(context, 0, intent, flags)
     }
 

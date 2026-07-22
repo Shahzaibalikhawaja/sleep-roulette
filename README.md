@@ -49,14 +49,32 @@ flowchart TB
 
 | Piece | Choice |
 |-------|--------|
-| Language | Kotlin 2.1 |
-| UI | Jetpack Compose + Material 3 |
-| DI | Hilt |
-| DB | Room |
+| Language | Kotlin 2.2 |
+| UI | Jetpack Compose + Material 3 (BOM 2026.06) |
+| Build | AGP 8.13 + Gradle 8.13 |
+| Navigation | Type-safe `@Serializable` routes |
+| DI | Hilt 2.57 |
+| DB | Room 2.8 (+ Room Gradle plugin schemas) |
 | Prefs | DataStore |
-| Async | Coroutines + Flow |
+| Async | Coroutines + Flow + `@ApplicationScope` |
 | Location | Play Services Geofencing |
-| Jobs | WorkManager |
+| Jobs | WorkManager + `@HiltWorker` |
+
+> **Note:** AGP 9 + Hilt 2.60 exist, but KSP is not ready for AGP 9’s built-in Kotlin yet.
+> We stay on the latest AGP 8.x line until that lands — still current, and what most production apps use today.
+
+## Modern practices used (and why)
+
+- **Type-safe Navigation** — no string route typos; `composable<AppDestination.Today>`
+- **`LifecycleEventEffect`** — replaces `DisposableEffect` + `LifecycleEventObserver` boilerplate
+- **`collectAsStateWithLifecycle`** — UI collects only while started
+- **Room `fallbackToDestructiveMigration(dropAllTables = true)`** — Room 2.7+ API
+- **Room Gradle plugin `schemaDirectory`** — replaces legacy KSP `room.schemaLocation`
+- **`kotlin { compilerOptions { jvmTarget } }`** — replaces deprecated `android.kotlinOptions`
+- **UsageStats `ACTIVITY_RESUMED/PAUSED` only** — `MOVE_TO_*` events are deprecated
+- **`ServiceCompat.stopForeground`** — support-library-safe FGS teardown
+- **Injected `@ApplicationScope`** — no orphan `CoroutineScope(SupervisorJob())` in receivers
+- **Theme.Material3.DayNight.NoActionBar** — correct base for Compose edge-to-edge
 
 ## Build & run
 

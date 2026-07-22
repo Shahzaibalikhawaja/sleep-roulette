@@ -34,10 +34,10 @@ class UsageStatsSampler @Inject constructor(
         Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 
     /**
-     * Rough count of minutes where *some* app was in the foreground and the
-     * device was interactive, between [from] and [to].
+     * Rough count of minutes where *some* app was in the foreground between [from] and [to].
      *
-     * Good enough for "are you doomscrolling past bedtime?" — not forensic.
+     * Uses ACTIVITY_RESUMED / ACTIVITY_PAUSED only — MOVE_TO_FOREGROUND / BACKGROUND
+     * were deprecated in API 29.
      */
     fun interactiveForegroundMinutes(from: Instant, to: Instant): Long {
         if (!hasUsageAccess()) return 0L
@@ -57,14 +57,10 @@ class UsageStatsSampler @Inject constructor(
             if (event.packageName == ownPackage) continue
 
             when (event.eventType) {
-                UsageEvents.Event.ACTIVITY_RESUMED,
-                UsageEvents.Event.MOVE_TO_FOREGROUND,
-                -> {
+                UsageEvents.Event.ACTIVITY_RESUMED -> {
                     lastResumeMs = event.timeStamp
                 }
-                UsageEvents.Event.ACTIVITY_PAUSED,
-                UsageEvents.Event.MOVE_TO_BACKGROUND,
-                -> {
+                UsageEvents.Event.ACTIVITY_PAUSED -> {
                     val start = lastResumeMs
                     if (start != null && event.timeStamp >= start) {
                         totalMs += (event.timeStamp - start)
@@ -74,7 +70,6 @@ class UsageStatsSampler @Inject constructor(
             }
         }
 
-        // If still in foreground at end of window, close the interval.
         lastResumeMs?.let { start ->
             totalMs += (to.toEpochMilli() - start).coerceAtLeast(0L)
         }

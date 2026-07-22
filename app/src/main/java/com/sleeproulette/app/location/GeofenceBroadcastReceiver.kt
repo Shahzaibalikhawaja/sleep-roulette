@@ -5,28 +5,26 @@ import android.content.Context
 import android.content.Intent
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
+import com.sleeproulette.app.di.ApplicationScope
 import com.sleeproulette.app.domain.model.LifeEventType
 import com.sleeproulette.app.domain.model.PlaceKind
 import com.sleeproulette.app.domain.repo.LifeEventRepository
 import com.sleeproulette.app.notify.SleepCountdownController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * Receives geofence transitions from Play Services (can wake the app).
- * Keep work short; hand off to repositories / controllers on a background scope.
+ * Keep work short; hand off to repositories / controllers on the app scope.
  */
 @AndroidEntryPoint
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     @Inject lateinit var lifeEventRepository: LifeEventRepository
     @Inject lateinit var countdownController: SleepCountdownController
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject @ApplicationScope lateinit var applicationScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
         val event = GeofencingEvent.fromIntent(intent) ?: return
@@ -36,7 +34,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         val ids = event.triggeringGeofences?.map { it.requestId }.orEmpty()
 
         val pendingResult = goAsync()
-        scope.launch {
+        applicationScope.launch {
             try {
                 ids.forEach { requestId ->
                     val kind = runCatching { PlaceKind.valueOf(requestId) }.getOrNull() ?: return@forEach

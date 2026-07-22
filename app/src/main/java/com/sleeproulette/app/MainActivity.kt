@@ -20,12 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
 import com.sleeproulette.app.ui.log.LogRoute
 import com.sleeproulette.app.ui.navigation.AppDestination
 import com.sleeproulette.app.ui.setup.SetupRoute
@@ -50,12 +51,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun SleepRouletteAppShell() {
     val navController = rememberNavController()
-    val destinations = listOf(
-        AppDestination.Today,
-        AppDestination.Log,
-        AppDestination.Stats,
-        AppDestination.Setup,
-    )
+    val destinations = AppDestination.bottomBarItems
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
@@ -64,19 +60,29 @@ private fun SleepRouletteAppShell() {
         bottomBar = {
             NavigationBar {
                 destinations.forEach { dest ->
-                    val selected = currentDestination
-                        ?.hierarchy
-                        ?.any { it.route == dest.route } == true
+                    val selected = when (dest) {
+                        AppDestination.Today ->
+                            currentDestination?.hasRoute<AppDestination.Today>() == true
+                        AppDestination.Log ->
+                            currentDestination?.hasRoute<AppDestination.Log>() == true
+                        AppDestination.Stats ->
+                            currentDestination?.hasRoute<AppDestination.Stats>() == true
+                        AppDestination.Setup ->
+                            currentDestination?.hasRoute<AppDestination.Setup>() == true
+                    }
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
+                            navController.navigate(
+                                route = dest,
+                                navOptions = navOptions {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                },
+                            )
                         },
                         icon = {
                             Icon(
@@ -97,13 +103,13 @@ private fun SleepRouletteAppShell() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Today.route,
+            startDestination = AppDestination.Today,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(AppDestination.Today.route) { TodayRoute() }
-            composable(AppDestination.Log.route) { LogRoute() }
-            composable(AppDestination.Stats.route) { StatsRoute() }
-            composable(AppDestination.Setup.route) { SetupRoute() }
+            composable<AppDestination.Today> { TodayRoute() }
+            composable<AppDestination.Log> { LogRoute() }
+            composable<AppDestination.Stats> { StatsRoute() }
+            composable<AppDestination.Setup> { SetupRoute() }
         }
     }
 }

@@ -1,20 +1,23 @@
 [versions]
-agp = "8.9.1"
-kotlin = "2.1.10"
-ksp = "2.1.10-1.0.31"
-coreKtx = "1.15.0"
-lifecycle = "2.8.7"
-activityCompose = "1.10.1"
-composeBom = "2025.02.00"
-navigation = "2.8.8"
-hilt = "2.55"
+agp = "8.13.2"
+kotlin = "2.2.21"
+ksp = "2.2.21-2.0.5"
+coreKtx = "1.17.0"
+lifecycle = "2.10.0"
+activityCompose = "1.12.4"
+composeBom = "2026.06.01"
+navigation = "2.9.8"
+# Hilt 2.60+ requires AGP 9; KSP is not ready for AGP 9 built-in Kotlin yet.
+hilt = "2.57.2"
 hiltNavigation = "1.2.0"
-room = "2.6.1"
-datastore = "1.1.2"
+room = "2.8.4"
+datastore = "1.1.7"
 playServicesLocation = "21.3.0"
-work = "2.10.0"
+work = "2.10.5"
 hiltWork = "1.2.0"
-coroutines = "1.10.1"
+coroutines = "1.10.2"
+serialization = "1.9.0"
+material = "1.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,10 +46,14 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+room = { id = "androidx.room", version.ref = "room" }

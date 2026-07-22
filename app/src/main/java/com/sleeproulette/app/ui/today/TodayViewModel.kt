@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
@@ -83,7 +84,7 @@ class TodayViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            while (true) {
+            while (isActive) {
                 tick.value = Instant.now()
                 delay(1_000)
             }

@@ -3,6 +3,7 @@ package com.sleeproulette.app.notify
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import androidx.core.app.ServiceCompat
 import com.sleeproulette.app.domain.model.LifeEventType
 import com.sleeproulette.app.domain.model.PlaceKind
 import com.sleeproulette.app.domain.policy.BedtimePolicy
@@ -89,7 +90,7 @@ class SleepCountdownService : Service() {
 
     private fun stopCountdown() {
         ticker?.cancel()
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
