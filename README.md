@@ -4,13 +4,15 @@ Personal Android MVP for irregular / shift sleep schedules. **You are the only u
 
 Target device: **Oppo Reno 11F (CPH2603), Android 16 / ColorOS**.
 
+**Product docs:** [docs/PRODUCT.md](docs/PRODUCT.md) — origin story, V1 goals, principles, idea backlog, and roadmap. (The old ChatGPT dump `TXT.txt` is archive only.)
+
 ## Product promise
 
 Help you get to bed more consistently by reacting to *life events*:
 
 - Arrived home (geofence)
 - Sleep countdown until goal bedtime / sunrise
-- Phone still in use after goal → nudge
+- Phone still in use after goal → nudge (notification only — does not lock the phone)
 
 ## Architecture (learn this)
 
@@ -90,7 +92,7 @@ Open **Setup** first:
 2. Usage access  
 3. Ignore battery optimizations  
 4. ColorOS Autostart (App settings)  
-5. **Use current location as Home**  
+5. **Use current location as Home** (or **Clear Home** / overwrite when needed)  
 6. Set bedtime goal  
 
 From **Today**, tap **I'm home** to manually start the countdown while testing geofences.

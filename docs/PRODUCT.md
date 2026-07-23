@@ -1,0 +1,225 @@
+# Sleep Roulette — Origin, Vision & Roadmap
+
+This document is the product source of truth. The raw ChatGPT brainstorm lives in the parent folder as `TXT.txt` (archive only). Prefer this file when deciding what to build next.
+
+---
+
+## 1. How it started
+
+It began as a personal question, not a product pitch:
+
+> Sometimes I sleep during the day. Today I feel sleepy at work at the same time. What’s the science?
+
+That led into the **two-process model of sleep** (sleep pressure / adenosine vs circadian rhythm), afternoon dips, sleep debt, and why gaming / day-sleep / irregular schedules make weekdays feel worse even when “total hours” look fine.
+
+From there the conversation shifted to building something useful on an **Oppo Reno 11F (Android 16 / ColorOS)** — a personal tool for someone who:
+
+- works full-time (backend)
+- sometimes keeps irregular hours (gaming, late nights)
+- wants measurement and feedback, not another generic sleep app
+
+Early ideas included on-device LLMs, lots of sensors, Life360-style geofencing, and “yell at me when I’m home but still on YouTube.” The important correction was:
+
+> Don’t build an AI sleep tracker. Build a **behavior-change / personal observability** loop. AI (if ever) narrates patterns that SQL and stats already found.
+
+The ChatGPT thread is archived as `../TXT.txt`. It is **not** maintained documentation.
+
+---
+
+## 2. Initial MVP goal (V1)
+
+### Promise (one sentence)
+
+**Help the only user (you) get to bed more consistently on irregular nights** by reacting to life events — not by collecting vanity charts.
+
+### Framing that won
+
+Closer to **Life360 for sleep** than to Fitbit/Oura:
+
+| Life event | Why it matters |
+|------------|----------------|
+| Left work / arrived home | Decision window for bedtime starts |
+| Still using phone after goal | Intervention moment (JITAI) |
+| Sunrise approaching | Biological deadline for shift-ish schedules |
+| Bedtime achieved / missed | Consistency signal |
+
+### Explicit V1 scope
+
+**In**
+
+- Local-only Android app (no signup, cloud, iOS, web)
+- Home geofence (+ optional Work later)
+- Arrive-home **Sleep Countdown** (goal bedtime vs sunrise)
+- Usage Access → soft **nudge** after goal (notification only, not a phone lock)
+- Manual sleep start/end + history
+- Basic consistency stats
+- Sideload APK; survive ColorOS battery killers as a first-class concern
+
+**Out**
+
+- Auth / multi-user / privacy theater for a store audience
+- Health Connect, microphone, LLM chatbot
+- Smart home, experiments UI, CSV polish as product surface
+- Blocking the phone after bedtime
+
+### Success for V1
+
+You can run the app for real nights on the Reno 11F and answer:
+
+1. Did Home arrival trigger a countdown?
+2. Did the countdown survive screen-off / overnight?
+3. Did a post-goal phone-use nudge fire?
+4. Can I log sleep and see a streak/history?
+
+If ColorOS silently kills background work, fixing that beats adding sensors.
+
+### North-star metric (keep this)
+
+Not “average hours slept.” Prefer:
+
+- **% of nights sleep started before goal bedtime**
+- Secondary: **median home → bed minutes**
+
+---
+
+## 3. What V1 shipped
+
+| Area | Status |
+|------|--------|
+| App name / package | Sleep Roulette · `com.sleeproulette.app` |
+| Stack | Kotlin, Compose, Hilt, Room, DataStore, Geofencing, WorkManager |
+| Screens | Today, Log, Stats, Setup |
+| Geofence Home | Set / overwrite / **clear** |
+| Countdown | FGS + ongoing notification; manual “I’m home” for testing |
+| Usage nudge | Soft notification after goal + threshold |
+| Sleep log | Manual start/end |
+| Stats | Duration average + streak; home→bed / goal hit rate still thin |
+| Docs | README (build/arch) + this file (product) |
+
+Repo: https://github.com/Shahzaibalikhawaja/sleep-roulette
+
+---
+
+## 4. Product principles (don’t forget)
+
+1. **One job** — consistency before bedtime goal. Features must serve that.
+2. **Intervene at decision points** — arrive home, past goal, sunrise near — not generic 9pm reminders.
+3. **Infer 80%, ask 20%** — sensors suggest; user confirms. Don’t silently invent truth.
+4. **Explain with your data** — “Tuesdays you average +45m after home,” not stock tips.
+5. **Survive ColorOS** is a feature.
+6. **AI is a narrator, not the scientist** — stats/SQL first; LLM later optional.
+7. **Avoid OS bloat** — no coffee-machine / Home Assistant / Spotify integrations until the core loop is sticky.
+
+Copy tone: shift chaos is fine (“tonight’s window,” “gambling past sunrise”). Clinical “sleep hygiene score” is not the brand.
+
+---
+
+## 5. Ideas & discussion backlog
+
+Captured from the original brainstorm and post-MVP conversation. Not a commitment — a menu.
+
+### Interventions
+
+- Soft nudge → escalate after repeated ignores (full-screen activity, sound, stronger copy)
+- Sleep countdown richness (progress bar, sunrise warning copy)
+- Personalized nudge text from historical latency / home→bed
+- Optional hard friction later (overlay / app limits) — only after soft loop has data; never as V1
+
+### Sleep detection
+
+- Suggest sleep window from screen-off + stillness (accel/gyro) + charging
+- Confidence score + “Confirm / edit”
+- Morning unlock → “End sleep?” prompt
+- Full sensor fusion (light, mic-as-classifier without storing audio) — later
+- Health Connect / watch import — later
+
+### Places & context
+
+- Work geofence (leave work → adjust expected bedtime)
+- Travel / hotel detection (confounder)
+- Commute duration → expected home→bed
+
+### Analytics
+
+- Home→bed median, goal hit rate (complete Stats)
+- Weekday patterns (“Tuesdays delay bedtime”)
+- Sleep debt / rolling averages
+- Experiment mode (“no phone in bed for 7 days”)
+- CSV export for personal analysis
+
+### Architecture evolution (personal observability)
+
+Same engines, new datasets over time: mood, caffeine, focus, gym — **Grafana for humans**. Only after sleep loop works.
+
+### Explicit non-goals (until you reopen them)
+
+- Store launch, accounts, sync
+- iOS / web
+- LLM therapist / chatbot as core UX
+- Mic recording to cloud
+- Smart home automation
+
+---
+
+## 6. Road ahead (recommended order)
+
+### Phase 0 — Prove the loop (now)
+
+On-device soak on Oppo:
+
+- [ ] Geofence ENTER_HOME fires in real life
+- [ ] Countdown notification survives overnight / Doze / ColorOS
+- [ ] Usage nudge fires after goal with Usage Access on
+- [ ] Manual log usable at 4am (muscle memory)
+
+**Gate:** don’t add features until this is trustworthy.
+
+### Phase 1 — Friction down
+
+- [x] Clear / overwrite Home (UX)
+- [ ] Suggested sleep from screen-off + quiet phone + confirm
+- [ ] Today shows last night + streak, not only countdown
+- [ ] Finish Stats: home→bed median, goal hit rate
+
+### Phase 2 — Smarter interventions
+
+- [ ] Escalation ladder for ignored nudges
+- [ ] Copy driven by simple personal stats
+- [ ] Work geofence optional
+
+### Phase 3 — Detection quality
+
+- [ ] Sensor fusion + confidence
+- [ ] Health Connect optional import
+- [ ] Correction feedback improves per-user heuristics
+
+### Phase 4 — Narration / experiments (optional)
+
+- [ ] Local or cloud LLM as narrator over SQL results
+- [ ] Experiment planner
+- [ ] Broader “personal observability” datasets
+
+---
+
+## 7. Engineering notes that affect product
+
+- **Nudge ≠ lock.** Usage Access only *observes* foreground time; intervention is a notification.
+- **Debug package id:** `com.sleeproulette.app.debug`
+- **AGP 9 / Hilt 2.60:** blocked until KSP supports AGP built-in Kotlin; stay on AGP 8.13 line (see README).
+- **Destructive Room migrations** OK for personal MVP; add real migrations before caring about long-term DB.
+
+---
+
+## 8. Changelog of product thinking
+
+| When | Decision |
+|------|----------|
+| Brainstorm | Science → sensors → Life360 framing; reject “AI-first” marketing |
+| Spec | Single-user Oppo MVP; local-only; consistency promise |
+| Build | V1 spine shipped: geofence, countdown, nudge, manual log |
+| Testing | Soft nudge only; Clear Home needed; auto-detect deferred |
+| Post-V1 | Document here; Phase 0 soak before sensors/AI |
+
+---
+
+*Update this file when you cut a phase or kill an idea. Leave `TXT.txt` as historical archive.*
