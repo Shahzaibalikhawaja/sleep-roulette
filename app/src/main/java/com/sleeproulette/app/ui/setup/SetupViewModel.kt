@@ -101,6 +101,13 @@ class SetupViewModel @Inject constructor(
         }
     }
 
+    fun clearHome() {
+        viewModelScope.launch {
+            placeRepository.delete(PlaceKind.HOME)
+            geofenceManager.refreshGeofences()
+        }
+    }
+
     fun setGoalMode(mode: BedtimeGoalMode) {
         viewModelScope.launch {
             settingsRepository.update { it.copy(goalMode = mode) }

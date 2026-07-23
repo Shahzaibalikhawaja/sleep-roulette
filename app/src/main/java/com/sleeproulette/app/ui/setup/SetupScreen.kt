@@ -80,6 +80,7 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
             context.startActivity(viewModel.appDetailsIntent())
         },
         onUseCurrentAsHome = viewModel::useCurrentLocationAsHome,
+        onClearHome = viewModel::clearHome,
         onGoalMode = viewModel::setGoalMode,
         onFixedMinutes = viewModel::setFixedGoalMinutes,
         onBeforeSunrise = viewModel::setMinutesBeforeSunrise,
@@ -96,6 +97,7 @@ fun SetupScreen(
     onOpenBatteryOpt: () -> Unit,
     onOpenAppDetails: () -> Unit,
     onUseCurrentAsHome: () -> Unit,
+    onClearHome: () -> Unit,
     onGoalMode: (BedtimeGoalMode) -> Unit,
     onFixedMinutes: (Int) -> Unit,
     onBeforeSunrise: (Int) -> Unit,
@@ -144,7 +146,21 @@ fun SetupScreen(
             enabled = state.hasFineLocation,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Use current location as Home")
+            Text(
+                if (state.home == null) {
+                    "Use current location as Home"
+                } else {
+                    "Overwrite Home with current location"
+                },
+            )
+        }
+        if (state.home != null) {
+            OutlinedButton(
+                onClick = onClearHome,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Clear Home")
+            }
         }
 
         SectionTitle("Bedtime goal")
