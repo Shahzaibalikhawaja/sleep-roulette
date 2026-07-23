@@ -30,7 +30,7 @@ The ChatGPT thread is archived as `../TXT.txt`. It is **not** maintained documen
 
 ### Promise (one sentence)
 
-**Help the only user (you) get to bed more consistently on irregular nights** by reacting to life events — not by collecting vanity charts.
+**Help the only user (you) get to bed more consistently on irregular nights** by reacting to life events — with a real sleep log + charts that serve that goal (not vanity averages alone).
 
 ### Framing that won
 
@@ -103,14 +103,33 @@ Repo: https://github.com/Shahzaibalikhawaja/sleep-roulette
 ## 4. Product principles (don’t forget)
 
 1. **One job** — consistency before bedtime goal. Features must serve that.
-2. **Intervene at decision points** — arrive home, past goal, sunrise near — not generic 9pm reminders.
-3. **Infer 80%, ask 20%** — sensors suggest; user confirms. Don’t silently invent truth.
-4. **Explain with your data** — “Tuesdays you average +45m after home,” not stock tips.
-5. **Survive ColorOS** is a feature.
-6. **AI is a narrator, not the scientist** — stats/SQL first; LLM later optional.
-7. **Avoid OS bloat** — no coffee-machine / Home Assistant / Spotify integrations until the core loop is sticky.
+2. **Be both a logger and a coach** — logging + charts are required infrastructure; interventions are the differentiator. Charts that don’t serve the north star are vanity.
+3. **Intervene at decision points** — arrive home, past goal, sunrise near — not generic 9pm reminders.
+4. **Infer 80%, ask 20%** — sensors suggest; user confirms. Don’t silently invent truth.
+5. **Explain with your data** — “Tuesdays you average +45m after home,” not stock tips.
+6. **Survive ColorOS** is a feature.
+7. **AI is a narrator, not the scientist** — stats/SQL first; LLM later optional.
+8. **Avoid OS bloat** — no coffee-machine / Home Assistant / Spotify integrations until the core loop is sticky.
 
 Copy tone: shift chaos is fine (“tonight’s window,” “gambling past sunrise”). Clinical “sleep hygiene score” is not the brand.
+
+### Logger vs behavior-change — resolved
+
+**Yes, it can be both.** The earlier line “isn’t a sleep logger with charts” meant: don’t *stop* at passive logging like every other tracker. It did **not** mean “never log” or “never chart.”
+
+| Layer | Role |
+|-------|------|
+| Sleep log + graphs | Memory and proof — without data you can’t learn or trust interventions |
+| Life events + nudges | Behavior change — what makes this not just another diary |
+
+**Hierarchy:** log everything useful → visualize the north-star metrics → intervene on life events. If a chart doesn’t help answer “am I getting more consistent?”, deprioritize it.
+
+**Charts we want (after Phase 0):**
+
+- Goal hit rate over time (% nights before goal) — primary
+- Home → bed minutes (trend / median)
+- Sleep duration as secondary context (not the hero metric)
+- Optional: weekday pattern bars
 
 ---
 
@@ -142,6 +161,7 @@ Captured from the original brainstorm and post-MVP conversation. Not a commitmen
 ### Analytics
 
 - Home→bed median, goal hit rate (complete Stats)
+- **In-app charts** for north-star metrics (not vanity-only duration)
 - Weekday patterns (“Tuesdays delay bedtime”)
 - Sleep debt / rolling averages
 - Experiment mode (“no phone in bed for 7 days”)
@@ -174,16 +194,18 @@ On-device soak on Oppo:
 
 **Gate:** don’t add features until this is trustworthy.
 
-### Phase 1 — Friction down
+### Phase 1 — Friction down + visible proof
 
 - [x] Clear / overwrite Home (UX)
 - [ ] Suggested sleep from screen-off + quiet phone + confirm
+- [ ] Morning unlock → end/confirm sleep
 - [ ] Today shows last night + streak, not only countdown
-- [ ] Finish Stats: home→bed median, goal hit rate
+- [ ] Finish Stats: home→bed median, **goal hit rate**
+- [ ] **Charts:** goal-hit % and home→bed over time (duration secondary)
 
 ### Phase 2 — Smarter interventions
 
-- [ ] Escalation ladder for ignored nudges
+- [ ] Escalation ladder for ignored nudges (still no hard phone lock by default)
 - [ ] Copy driven by simple personal stats
 - [ ] Work geofence optional
 
@@ -219,6 +241,7 @@ On-device soak on Oppo:
 | Build | V1 spine shipped: geofence, countdown, nudge, manual log |
 | Testing | Soft nudge only; Clear Home needed; auto-detect deferred |
 | Post-V1 | Document here; Phase 0 soak before sensors/AI |
+| Direction lock | North star = goal hit % + home→bed; charts yes; logger + coach; escalate soft→strong later |
 
 ---
 
