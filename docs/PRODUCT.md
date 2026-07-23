@@ -137,24 +137,57 @@ Copy tone: shift chaos is fine (“tonight’s window,” “gambling past sunri
 
 Captured from the original brainstorm and post-MVP conversation. Not a commitment — a menu.
 
+### Real-world scenarios (decided after V1 ship)
+
+These came up while planning the first real night of testing. **Build order preference:** morning confirm → “sleeping but scrolling” nudge → Work UI → overnight disturbances.
+
+#### A. Tapped “Start sleep” then doomscrolled TikTok / YouTube / Instagram
+
+| Today | Wanted |
+|-------|--------|
+| Session opens in DB only. Usage nudge is tied to **past goal bedtime**, not to “sleep started but still scrolling.” | If `ongoingSleep` **and** interactive use of doomscroll apps for N minutes → disappointed / accountability nudge (“You said you were sleeping”). Soft notification first; escalate later. |
+
+#### B. Forgot to open the app and start the timer
+
+| Today | Wanted |
+|-------|--------|
+| No morning suggestion. Night is missing unless logged manually. | Infer likely window (screen interactive quiet + stillness / charging) → morning: **“Slept ~X–Y? Confirm / edit.”** This is the main fix for 4am friction. |
+
+#### C. Poor sleep: wake ~6–7am, water / bathroom, sleep again
+
+| Today | Wanted |
+|-------|--------|
+| One manual session; mid-night wakes invisible. | **Do not end the night** on a brief wake. **Do record** phone interaction during the sleep window as a **disturbance** (not a “false positive”). Interactive use = awake enough that sleep was interrupted. Morning copy e.g. “7h 40m window, 2 phone disturbances.” Bathroom-only with no unlock can stay invisible until better sensing. |
+
+**Signal preference:** interactive use (UsageStats / unlock + apps), not raw screen-on. Always-on display (AOD) should **not** count as wake — verify on ColorOS; filter with interactive minutes if needed.
+
+#### D. Work geofence (leave work → arrive home)
+
+| Today | Wanted |
+|-------|--------|
+| `PlaceKind.WORK` + ENTER/EXIT_WORK events + geofence registration exist in code; **Setup UI only configures Home.** | Add Set / Clear Work like Home. Leave Work → commute / bedtime pressure context; Enter Home → countdown (existing). Phase 2 unless Phase 0 is already solid. |
+
 ### Interventions
 
 - Soft nudge → escalate after repeated ignores (full-screen activity, sound, stronger copy)
+- **“Sleeping but still scrolling”** accountability nudge (scenario A)
 - Sleep countdown richness (progress bar, sunrise warning copy)
 - Personalized nudge text from historical latency / home→bed
-- Optional hard friction later (overlay / app limits) — only after soft loop has data; never as V1
+- Optional hard friction later (overlay / app limits) — only after soft loop has data; never as V1 default
 
 ### Sleep detection
 
-- Suggest sleep window from screen-off + stillness (accel/gyro) + charging
+- Suggest sleep window from quiet interactive period + stillness (accel/gyro) + charging
 - Confidence score + “Confirm / edit”
-- Morning unlock → “End sleep?” prompt
+- Morning unlock → “End sleep?” / confirm suggested session (scenario B)
+- Overnight **disturbances**: interactive unlocks during a sleep session or inferred window — append events, keep one night (scenario C)
+- Prefer interactive use over SCREEN_ON (AOD-safe)
 - Full sensor fusion (light, mic-as-classifier without storing audio) — later
 - Health Connect / watch import — later
 
 ### Places & context
 
-- Work geofence (leave work → adjust expected bedtime)
+- **Work geofence UI** (backend ready) — leave work → home arrival chain (scenario D)
 - Travel / hotel detection (confounder)
 - Commute duration → expected home→bed
 
@@ -162,6 +195,7 @@ Captured from the original brainstorm and post-MVP conversation. Not a commitmen
 
 - Home→bed median, goal hit rate (complete Stats)
 - **In-app charts** for north-star metrics (not vanity-only duration)
+- Disturbance count per night (once scenario C exists)
 - Weekday patterns (“Tuesdays delay bedtime”)
 - Sleep debt / rolling averages
 - Experiment mode (“no phone in bed for 7 days”)
@@ -178,42 +212,57 @@ Same engines, new datasets over time: mood, caffeine, focus, gym — **Grafana f
 - LLM therapist / chatbot as core UX
 - Mic recording to cloud
 - Smart home automation
+- Treating AOD / notification glow as “awake” without interactive use
 
 ---
 
 ## 6. Road ahead (recommended order)
 
-### Phase 0 — Prove the loop (now)
+### Phase 0 — Prove the loop (**in progress — first real night**)
 
-On-device soak on Oppo:
+Pause feature work until soak results are in. Checklist:
 
 - [ ] Geofence ENTER_HOME fires in real life
 - [ ] Countdown notification survives overnight / Doze / ColorOS
 - [ ] Usage nudge fires after goal with Usage Access on
 - [ ] Manual log usable at 4am (muscle memory)
+- [ ] Note failures: geofence miss? FGS killed? no nudge? forgot Start sleep?
+
+**Tonight walkthrough (manual):** Setup permissions → set Home at real home → set goal → optional “I’m home” test → live: hope geofence starts countdown (else tap I’m home) → Start sleep when you mean it → End sleep in the morning → jot what broke.
 
 **Gate:** don’t add features until this is trustworthy.
 
 ### Phase 1 — Friction down + visible proof
 
+Priority within phase (from scenario discussion):
+
+1. Morning suggest / confirm if timer forgotten  
+2. “Sleeping but scrolling” nudge  
+3. Richer Today + Stats/charts (north star)  
+4. Overnight disturbance logging (interactive use)  
+
+Checklist:
+
 - [x] Clear / overwrite Home (UX)
-- [ ] Suggested sleep from screen-off + quiet phone + confirm
-- [ ] Morning unlock → end/confirm sleep
+- [ ] Suggested sleep + morning confirm / edit
+- [ ] Accountability nudge while `ongoingSleep` + doomscroll apps
 - [ ] Today shows last night + streak, not only countdown
 - [ ] Finish Stats: home→bed median, **goal hit rate**
 - [ ] **Charts:** goal-hit % and home→bed over time (duration secondary)
+- [ ] Disturbances during night (don’t split session)
 
-### Phase 2 — Smarter interventions
+### Phase 2 — Smarter interventions + Work
 
 - [ ] Escalation ladder for ignored nudges (still no hard phone lock by default)
 - [ ] Copy driven by simple personal stats
-- [ ] Work geofence optional
+- [ ] **Work geofence Set/Clear UI** + leave-work → home chain
 
 ### Phase 3 — Detection quality
 
 - [ ] Sensor fusion + confidence
 - [ ] Health Connect optional import
 - [ ] Correction feedback improves per-user heuristics
+- [ ] AOD / ColorOS validation for wake signals
 
 ### Phase 4 — Narration / experiments (optional)
 
@@ -229,6 +278,8 @@ On-device soak on Oppo:
 - **Debug package id:** `com.sleeproulette.app.debug`
 - **AGP 9 / Hilt 2.60:** blocked until KSP supports AGP built-in Kotlin; stay on AGP 8.13 line (see README).
 - **Destructive Room migrations** OK for personal MVP; add real migrations before caring about long-term DB.
+- **AOD:** Prefer unlock + interactive UsageStats over raw screen-on for sleep/wake inference.
+- **Work:** Domain + geofence path exist; only Home is exposed in Setup UI today.
 
 ---
 
@@ -242,7 +293,8 @@ On-device soak on Oppo:
 | Testing | Soft nudge only; Clear Home needed; auto-detect deferred |
 | Post-V1 | Document here; Phase 0 soak before sensors/AI |
 | Direction lock | North star = goal hit % + home→bed; charts yes; logger + coach; escalate soft→strong later |
+| Scenario lock | Morning confirm &gt; scroll-while-sleeping nudge &gt; Work UI &gt; overnight disturbances; interactive unlock = real disturbance, not false positive; AOD ignored |
 
 ---
 
-*Update this file when you cut a phase or kill an idea. Leave `TXT.txt` as historical archive.*
+*Update this file when you cut a phase or kill an idea. Leave `TXT.txt` as historical archive. Next session: review Phase 0 soak notes, then pick Phase 1 items.*
