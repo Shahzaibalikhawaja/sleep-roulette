@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.Duration
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -46,6 +47,12 @@ fun TodayScreen(
     onSimulateHome: () -> Unit,
 ) {
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+    val startedFmt = DateTimeFormatter.ofPattern("HH:mm")
+        .withZone(ZoneId.systemDefault())
+    val sleeping = state.ongoingSleep != null
+    val sleepElapsed = state.ongoingSleep?.let { session ->
+        Duration.between(session.startAt, state.now).coerceAtLeast(Duration.ZERO)
+    }
 
     Box(
         modifier = Modifier
@@ -63,10 +70,10 @@ fun TodayScreen(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = if (state.hasHome) {
-                    "Your sleep window for tonight"
-                } else {
-                    "Set Home in Setup to unlock countdown + geofence"
+                text = when {
+                    sleeping -> "Sleep in progress — timer runs from when you tapped Start"
+                    state.hasHome -> "Your sleep window for tonight"
+                    else -> "Set Home in Setup to unlock countdown + geofence"
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -85,16 +92,33 @@ fun TodayScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatRemaining(state.remaining),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = "until goal bedtime",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (sleeping && sleepElapsed != null) {
+                        Text(
+                            text = formatClock(sleepElapsed),
+                            style = MaterialTheme.typography.displayLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "asleep (since ${startedFmt.format(state.ongoingSleep!!.startAt)})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            text = formatCountdown(state.remaining),
+                            style = MaterialTheme.typography.displayLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = if (state.remaining.isNegative || state.remaining.isZero) {
+                                "past goal bedtime"
+                            } else {
+                                "until goal bedtime"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     val window = state.window
                     if (window != null) {
@@ -108,11 +132,7 @@ fun TodayScreen(
                 }
             }
 
-            if (state.ongoingSleep != null) {
-                Text(
-                    text = "Sleep in progress",
-                    style = MaterialTheme.typography.titleLarge,
-                )
+            if (sleeping) {
                 Button(
                     onClick = onEndSleep,
                     modifier = Modifier.fillMaxWidth(),
@@ -147,11 +167,21 @@ fun TodayScreen(
     }
 }
 
-private fun formatRemaining(duration: Duration): String {
-    val total = duration.seconds
-    if (total <= 0) return "00:00:00"
+/** Elapsed / countdown as HH:MM:SS from a non-negative duration. */
+private fun formatClock(duration: Duration): String {
+    val total = duration.seconds.coerceAtLeast(0)
     val h = total / 3600
     val m = (total % 3600) / 60
     val s = total % 60
     return "%02d:%02d:%02d".format(h, m, s)
+}
+
+/**
+ * Countdown to goal. When past goal, show how long past (not a fake sleep duration).
+ */
+private fun formatCountdown(duration: Duration): String {
+    if (duration.isNegative || duration.isZero) {
+        return formatClock(duration.abs())
+    }
+    return formatClock(duration)
 }

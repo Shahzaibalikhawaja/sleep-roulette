@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sleeproulette.app.domain.model.SleepSession
+import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -43,7 +44,7 @@ fun LogScreen(
     ) {
         Text("Sleep log", style = MaterialTheme.typography.headlineMedium)
         Text(
-            text = "Manual sessions first. Suggested detection comes later.",
+            text = "Duration = End − Start sleep tap (not goal bedtime).",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
@@ -77,7 +78,7 @@ private fun SessionRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = fmt.format(session.startAt),
+                text = "Start ${fmt.format(session.startAt)}",
                 style = MaterialTheme.typography.titleLarge,
             )
             val end = session.endAt
@@ -85,8 +86,8 @@ private fun SessionRow(
                 text = if (end == null) {
                     "Ongoing · ${session.source.name.lowercase()}"
                 } else {
-                    val hours = session.durationMinutes()?.div(60.0)
-                    "→ ${fmt.format(end)} · ${"%.1f".format(hours ?: 0.0)}h · ${session.source.name.lowercase()}"
+                    val duration = Duration.between(session.startAt, end)
+                    "End ${fmt.format(end)} · ${formatDurationHoursMinutes(duration)} · ${session.source.name.lowercase()}"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -95,5 +96,17 @@ private fun SessionRow(
         TextButton(onClick = { onDelete(session.id) }) {
             Text("Delete")
         }
+    }
+}
+
+/** Human-readable sleep length from Start→End instants only. */
+private fun formatDurationHoursMinutes(duration: Duration): String {
+    val totalMinutes = duration.toMinutes().coerceAtLeast(0)
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return when {
+        hours == 0L -> "${minutes}m"
+        minutes == 0L -> "${hours}h"
+        else -> "${hours}h ${minutes}m"
     }
 }

@@ -95,7 +95,8 @@ class SleepSessionRepositoryImpl @Inject constructor(
         }
         val avgHours = durations.takeIf { it.isNotEmpty() }
             ?.average()
-            ?.div(60.0)
+            ?.div(60.0) // minutes → hours; based on session startAt→endAt only
+
 
         // home→bed median + real goal hit rate need ENTER_HOME joins / goal snapshots.
         // Ship averages + streak first; refine analytics in a follow-up.

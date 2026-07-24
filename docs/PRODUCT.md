@@ -227,10 +227,13 @@ Pause feature work until soak results are in. Checklist:
 - [ ] Usage nudge fires after goal with Usage Access on
 - [ ] Manual log usable at 4am (muscle memory)
 - [ ] Note failures: geofence miss? FGS killed? no nudge? forgot Start sleep?
+- [ ] **Duration UX:** Today no longer shows goal countdown as if it were sleep length while asleep (fix after first night feedback)
 
 **Tonight walkthrough (manual):** Setup permissions → set Home at real home → set goal → optional “I’m home” test → live: hope geofence starts countdown (else tap I’m home) → Start sleep when you mean it → End sleep in the morning → jot what broke.
 
 **Gate:** don’t add features until this is trustworthy.
+
+**Soak notes (2026-07-24):** User reported sleep hours looking wrong / tied to goal. Root cause for Today: hero clock stayed on **time until goal** even after Start sleep. Log/Stats already used Start→End; Today now shows **elapsed since Start sleep** while a session is ongoing. Reinstall to verify; if Log “Start …” time still ≠ tap time, capture that screenshot.
 
 ### Phase 1 — Friction down + visible proof
 
