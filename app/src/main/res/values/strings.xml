@@ -2,10 +2,10 @@
 <resources>
     <string name="app_name">Sleep Roulette</string>
 
-    <string name="nav_today">Today</string>
+    <string name="nav_tonight">Tonight</string>
     <string name="nav_log">Log</string>
-    <string name="nav_stats">Stats</string>
-    <string name="nav_setup">Setup</string>
+    <string name="nav_trends">Trends</string>
+    <string name="nav_settings">Settings</string>
 
     <string name="channel_countdown_name">Sleep countdown</string>
     <string name="channel_countdown_desc">Ongoing timer from arriving home until bedtime</string>

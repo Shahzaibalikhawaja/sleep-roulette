@@ -14,8 +14,8 @@ sealed interface AppDestination {
     val labelRes: Int
 
     @Serializable
-    data object Today : AppDestination {
-        override val labelRes: Int = R.string.nav_today
+    data object Tonight : AppDestination {
+        override val labelRes: Int = R.string.nav_tonight
     }
 
     @Serializable
@@ -24,16 +24,16 @@ sealed interface AppDestination {
     }
 
     @Serializable
-    data object Stats : AppDestination {
-        override val labelRes: Int = R.string.nav_stats
+    data object Trends : AppDestination {
+        override val labelRes: Int = R.string.nav_trends
     }
 
     @Serializable
-    data object Setup : AppDestination {
-        override val labelRes: Int = R.string.nav_setup
+    data object Settings : AppDestination {
+        override val labelRes: Int = R.string.nav_settings
     }
 
     companion object {
-        val bottomBarItems: List<AppDestination> = listOf(Today, Log, Stats, Setup)
+        val bottomBarItems: List<AppDestination> = listOf(Tonight, Log, Trends, Settings)
     }
 }

@@ -88,17 +88,46 @@ Not “average hours slept.” Prefer:
 |------|--------|
 | App name / package | Sleep Roulette · `com.sleeproulette.app` |
 | Stack | Kotlin, Compose, Hilt, Room, DataStore, Geofencing, WorkManager |
-| Screens | Today, Log, Stats, Setup |
+| Screens | Tonight, Log, Trends, Settings |
 | Geofence Home | Set / overwrite / **clear** |
-| Countdown | FGS + ongoing notification; manual “I’m home” for testing |
+| Countdown | FGS + ongoing notification; manual “Start wind-down” in Tonight overflow |
 | Usage nudge | Soft notification after goal + threshold |
-| Sleep log | Manual start/end |
-| Stats | Duration average + streak; home→bed / goal hit rate still thin |
+| Sleep log | Manual start/end; **editable** start/end with confirmation delete |
+| Trends | Goal hit rate (7/30), goal-hit streak, median home→bed, Canvas charts |
 | Docs | README (build/arch) + this file (product) |
 
 Repo: https://github.com/Shahzaibalikhawaja/sleep-roulette
 
 ---
+
+## 3b. UX redesign (Momo-inspired)
+
+Visual direction (sleep-friendly translation of pastel / organic references — not copied branding):
+
+- Adaptive **light + dark** Material 3 themes: warm cream / deep ink surfaces; powder blue, blush, lavender, peach, mint accents; no default purple leak-through.
+- Serif display titles + system sans body; rounded soft cards; one accent per nav destination.
+- Navigation: **Tonight · Log · Trends · Settings** with distinct icons and colored selected states.
+
+### Tonight — one state, one action
+
+| Phase | Entered by | Primary action |
+|-------|------------|----------------|
+| Away | Not in wind-down | `Start sleep` (sleep elsewhere) |
+| Wind-down | ENTER_HOME after last sleep | `Start sleep` |
+| Sleeping | Start sleep | `Wake up` |
+| Complete | Wake up (daytime window) | `Start sleep` |
+
+Manual geofence recovery (`Start wind-down`) lives in the Tonight overflow menu.
+
+Timers show **hours/minutes only** (no ticking seconds).
+
+### Trends — finalized north-star definitions
+
+- **Goal hit:** `startAt <= goalAtStart` for sessions that stored a goal snapshot when sleep started.
+- **Goal hit rate:** hits / sessions-with-snapshot over 7 and 30 nights. Legacy rows without `goalAtStart` stay in the log but are **excluded from the denominator**.
+- **Goal-hit streak:** consecutive hits from newest snapshot nights (legacy nights skipped, miss breaks streak).
+- **Home → bed:** minutes from nearest ENTER_HOME within 18h before sleep start; median over the window.
+- **Duration:** secondary context only.
 
 ## 4. Product principles (don’t forget)
 
@@ -110,6 +139,7 @@ Repo: https://github.com/Shahzaibalikhawaja/sleep-roulette
 6. **Survive ColorOS** is a feature.
 7. **AI is a narrator, not the scientist** — stats/SQL first; LLM later optional.
 8. **Avoid OS bloat** — no coffee-machine / Home Assistant / Spotify integrations until the core loop is sticky.
+9. **Every UI string must earn its place** — prefer short labels and native controls; keep implementation notes and roadmap commentary out of the app.
 
 Copy tone: shift chaos is fine (“tonight’s window,” “gambling past sunrise”). Clinical “sleep hygiene score” is not the brand.
 
@@ -235,6 +265,14 @@ Pause feature work until soak results are in. Checklist:
 
 **Soak notes (2026-07-24):** User reported sleep hours looking wrong / tied to goal. Root cause for Today: hero clock stayed on **time until goal** even after Start sleep. Log/Stats already used Start→End; Today now shows **elapsed since Start sleep** while a session is ongoing. Reinstall to verify; if Log “Start …” time still ≠ tap time, capture that screenshot.
 
+**Screenshot review (2026-07-24):** The first-night screenshots confirmed the recorded session was correct (`02:17–12:21`, about `10h 4m`), but the interface was too verbose and exposed internal/test language. Cleanup decisions:
+
+- `Start sleep` begins the sleep record; `Wake up` ends it.
+- `Start wind-down` manually starts the pre-bed countdown (normally triggered by Home arrival).
+- Remove ColorOS tip and roadmap/implementation commentary from Today and Log.
+- Replace the 1,440-position bedtime slider with Android's native time picker.
+- Simplify sleep rows to date + `start–end · duration`.
+
 ### Phase 1 — Friction down + visible proof
 
 Priority within phase (from scenario discussion):
@@ -249,9 +287,8 @@ Checklist:
 - [x] Clear / overwrite Home (UX)
 - [ ] Suggested sleep + morning confirm / edit
 - [ ] Accountability nudge while `ongoingSleep` + doomscroll apps
-- [ ] Today shows last night + streak, not only countdown
-- [ ] Finish Stats: home→bed median, **goal hit rate**
-- [ ] **Charts:** goal-hit % and home→bed over time (duration secondary)
+- [x] Tonight state model (Away / Wind-down / Sleeping / Complete) + one primary action
+- [x] Trends: home→bed median, **goal hit rate**, goal-hit streak + Canvas charts
 - [ ] Disturbances during night (don’t split session)
 
 ### Phase 2 — Smarter interventions + Work
@@ -280,9 +317,9 @@ Checklist:
 - **Nudge ≠ lock.** Usage Access only *observes* foreground time; intervention is a notification.
 - **Debug package id:** `com.sleeproulette.app.debug`
 - **AGP 9 / Hilt 2.60:** blocked until KSP supports AGP built-in Kotlin; stay on AGP 8.13 line (see README).
-- **Destructive Room migrations** OK for personal MVP; add real migrations before caring about long-term DB.
+- **Room migrations:** v1→v2 adds nullable `goalAtStart` on sleep sessions (non-destructive). Legacy rows stay visible but are excluded from goal-rate denominators.
 - **AOD:** Prefer unlock + interactive UsageStats over raw screen-on for sleep/wake inference.
-- **Work:** Domain + geofence path exist; only Home is exposed in Setup UI today.
+- **Work:** Domain + geofence path exist; only Home is exposed in Settings UI today.
 
 ---
 
@@ -297,6 +334,7 @@ Checklist:
 | Post-V1 | Document here; Phase 0 soak before sensors/AI |
 | Direction lock | North star = goal hit % + home→bed; charts yes; logger + coach; escalate soft→strong later |
 | Scenario lock | Morning confirm &gt; scroll-while-sleeping nudge &gt; Work UI &gt; overnight disturbances; interactive unlock = real disturbance, not false positive; AOD ignored |
+| UX redesign | Momo-inspired adaptive theme; nav Tonight · Log · Trends · Settings; Tonight state machine; editable log; north-star Trends with goal snapshots |
 
 ---
 

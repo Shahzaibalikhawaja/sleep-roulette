@@ -45,6 +45,15 @@ interface LifeEventDao {
         """,
     )
     suspend fun latestOf(type: LifeEventType): LifeEventEntity?
+
+    @Query(
+        """
+        SELECT * FROM life_events
+        WHERE type = :type AND occurredAt >= :since
+        ORDER BY occurredAt ASC
+        """,
+    )
+    suspend fun ofTypeSince(type: LifeEventType, since: Instant): List<LifeEventEntity>
 }
 
 @Dao

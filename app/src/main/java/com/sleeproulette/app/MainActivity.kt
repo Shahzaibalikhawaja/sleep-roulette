@@ -7,13 +7,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.AutoGraph
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Nightlight
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +33,7 @@ import com.sleeproulette.app.ui.log.LogRoute
 import com.sleeproulette.app.ui.navigation.AppDestination
 import com.sleeproulette.app.ui.setup.SetupRoute
 import com.sleeproulette.app.ui.stats.StatsRoute
+import com.sleeproulette.app.ui.theme.SleepRouletteColors
 import com.sleeproulette.app.ui.theme.SleepRouletteTheme
 import com.sleeproulette.app.ui.today.TodayRoute
 import dagger.hilt.android.AndroidEntryPoint
@@ -54,21 +57,31 @@ private fun SleepRouletteAppShell() {
     val destinations = AppDestination.bottomBarItems
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val scheme = MaterialTheme.colorScheme
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = scheme.surface,
+                contentColor = scheme.onSurface,
+            ) {
                 destinations.forEach { dest ->
                     val selected = when (dest) {
-                        AppDestination.Today ->
-                            currentDestination?.hasRoute<AppDestination.Today>() == true
+                        AppDestination.Tonight ->
+                            currentDestination?.hasRoute<AppDestination.Tonight>() == true
                         AppDestination.Log ->
                             currentDestination?.hasRoute<AppDestination.Log>() == true
-                        AppDestination.Stats ->
-                            currentDestination?.hasRoute<AppDestination.Stats>() == true
-                        AppDestination.Setup ->
-                            currentDestination?.hasRoute<AppDestination.Setup>() == true
+                        AppDestination.Trends ->
+                            currentDestination?.hasRoute<AppDestination.Trends>() == true
+                        AppDestination.Settings ->
+                            currentDestination?.hasRoute<AppDestination.Settings>() == true
+                    }
+                    val accent = when (dest) {
+                        AppDestination.Tonight -> SleepRouletteColors.LavenderDeep
+                        AppDestination.Log -> SleepRouletteColors.PowderBlueDeep
+                        AppDestination.Trends -> SleepRouletteColors.Mint
+                        AppDestination.Settings -> SleepRouletteColors.Peach
                     }
                     NavigationBarItem(
                         selected = selected,
@@ -84,13 +97,20 @@ private fun SleepRouletteAppShell() {
                                 },
                             )
                         },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = accent,
+                            selectedTextColor = accent,
+                            indicatorColor = accent.copy(alpha = 0.18f),
+                            unselectedIconColor = scheme.onSurfaceVariant,
+                            unselectedTextColor = scheme.onSurfaceVariant,
+                        ),
                         icon = {
                             Icon(
                                 imageVector = when (dest) {
-                                    AppDestination.Today -> Icons.Outlined.Nightlight
+                                    AppDestination.Tonight -> Icons.Outlined.Nightlight
                                     AppDestination.Log -> Icons.Outlined.Bedtime
-                                    AppDestination.Stats -> Icons.Outlined.BarChart
-                                    AppDestination.Setup -> Icons.Outlined.Settings
+                                    AppDestination.Trends -> Icons.Outlined.AutoGraph
+                                    AppDestination.Settings -> Icons.Outlined.Tune
                                 },
                                 contentDescription = stringResource(dest.labelRes),
                             )
@@ -103,13 +123,13 @@ private fun SleepRouletteAppShell() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Today,
+            startDestination = AppDestination.Tonight,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable<AppDestination.Today> { TodayRoute() }
+            composable<AppDestination.Tonight> { TodayRoute() }
             composable<AppDestination.Log> { LogRoute() }
-            composable<AppDestination.Stats> { StatsRoute() }
-            composable<AppDestination.Setup> { SetupRoute() }
+            composable<AppDestination.Trends> { StatsRoute() }
+            composable<AppDestination.Settings> { SetupRoute() }
         }
     }
 }

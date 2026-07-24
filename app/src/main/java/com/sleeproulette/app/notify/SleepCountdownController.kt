@@ -56,4 +56,14 @@ class SleepCountdownController @Inject constructor(
 
     /** Manual start from UI (useful when geofence is flaky during development). */
     suspend fun startManually() = onArrivedHome()
+
+    /** Stop countdown FGS without recording EXIT_HOME (e.g. user started sleep). */
+    suspend fun stop() {
+        lifeEventRepository.record(LifeEventType.COUNTDOWN_STOPPED)
+        usageNudgeScheduler.cancel()
+        val intent = Intent(context, SleepCountdownService::class.java).apply {
+            action = SleepCountdownService.ACTION_STOP
+        }
+        context.startService(intent)
+    }
 }

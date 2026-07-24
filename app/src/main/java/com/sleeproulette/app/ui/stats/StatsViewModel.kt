@@ -2,8 +2,11 @@ package com.sleeproulette.app.ui.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sleeproulette.app.domain.model.ConsistencyStats
+import com.sleeproulette.app.domain.model.LifeEventType
+import com.sleeproulette.app.domain.repo.LifeEventRepository
 import com.sleeproulette.app.domain.repo.SleepSessionRepository
+import com.sleeproulette.app.domain.trends.TrendsAnalytics
+import com.sleeproulette.app.domain.trends.TrendsSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,16 +17,38 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+data class TrendsUiState(
+    val days7: TrendsSnapshot? = null,
+    val days30: TrendsSnapshot? = null,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    sleepSessionRepository: SleepSessionRepository,
+    private val sleepSessionRepository: SleepSessionRepository,
+    private val lifeEventRepository: LifeEventRepository,
 ) : ViewModel() {
 
-    val stats: StateFlow<ConsistencyStats?> = sleepSessionRepository
+    val uiState: StateFlow<TrendsUiState> = sleepSessionRepository
         .observeSessions()
-        .mapLatest {
-            sleepSessionRepository.stats(Instant.now().minus(30, ChronoUnit.DAYS))
+        .mapLatest { sessions ->
+            val now = Instant.now()
+            val since7 = now.minus(7, ChronoUnit.DAYS)
+            val since30 = now.minus(30, ChronoUnit.DAYS)
+            val enterHomes = lifeEventRepository.ofTypeSince(
+                LifeEventType.ENTER_HOME,
+                since30.minus(TrendsAnalytics.HomeMatchWindow),
+            )
+            TrendsUiState(
+                days7 = TrendsAnalytics.compute(
+                    sessions.filter { !it.startAt.isBefore(since7) },
+                    enterHomes,
+                ),
+                days30 = TrendsAnalytics.compute(
+                    sessions.filter { !it.startAt.isBefore(since30) },
+                    enterHomes,
+                ),
+            )
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrendsUiState())
 }

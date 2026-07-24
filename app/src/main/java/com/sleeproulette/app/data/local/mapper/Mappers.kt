@@ -38,6 +38,7 @@ fun SleepSessionEntity.toDomain() = SleepSession(
     endAt = endAt,
     source = source,
     notes = notes,
+    goalAtStart = goalAtStart,
 )
 
 fun SleepSession.toEntity() = SleepSessionEntity(
@@ -46,4 +47,5 @@ fun SleepSession.toEntity() = SleepSessionEntity(
     endAt = endAt,
     source = source,
     notes = notes,
+    goalAtStart = goalAtStart,
 )

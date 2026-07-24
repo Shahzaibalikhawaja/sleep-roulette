@@ -1,8 +1,13 @@
 package com.sleeproulette.app.ui.setup
 
+import android.app.TimePickerDialog
 import android.os.Build
+import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -27,7 +34,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sleeproulette.app.domain.model.BedtimeGoalMode
-import java.util.Locale
+import com.sleeproulette.app.ui.components.ScreenHeader
+import com.sleeproulette.app.ui.components.SoftCard
 import kotlin.math.roundToInt
 
 @Composable
@@ -35,7 +43,6 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Modern replacement for DisposableEffect + LifecycleEventObserver
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshPermissionFlags()
     }
@@ -58,6 +65,8 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
 
     SetupScreen(
         state = state,
+        onClearFeedback = viewModel::clearFeedback,
+        onTogglePermissions = viewModel::togglePermissionsExpanded,
         onRequestFineLocation = {
             fineLauncher.launch(viewModel.locationPermissionNeeded())
         },
@@ -82,7 +91,16 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
         onUseCurrentAsHome = viewModel::useCurrentLocationAsHome,
         onClearHome = viewModel::clearHome,
         onGoalMode = viewModel::setGoalMode,
-        onFixedMinutes = viewModel::setFixedGoalMinutes,
+        onPickGoalTime = {
+            val minutes = state.settings.fixedGoalMinutesFromMidnight
+            TimePickerDialog(
+                context,
+                { _, hour, minute -> viewModel.setFixedGoalMinutes(hour * 60 + minute) },
+                minutes / 60,
+                minutes % 60,
+                DateFormat.is24HourFormat(context),
+            ).show()
+        },
         onBeforeSunrise = viewModel::setMinutesBeforeSunrise,
     )
 }
@@ -90,6 +108,8 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
 @Composable
 fun SetupScreen(
     state: SetupUiState,
+    onClearFeedback: () -> Unit,
+    onTogglePermissions: () -> Unit,
     onRequestFineLocation: () -> Unit,
     onRequestBackgroundLocation: () -> Unit,
     onRequestNotifications: () -> Unit,
@@ -99,114 +119,182 @@ fun SetupScreen(
     onUseCurrentAsHome: () -> Unit,
     onClearHome: () -> Unit,
     onGoalMode: (BedtimeGoalMode) -> Unit,
-    onFixedMinutes: (Int) -> Unit,
+    onPickGoalTime: () -> Unit,
     onBeforeSunrise: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Setup", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = "Personal MVP — grant what ColorOS needs so geofences and nudges survive.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        ScreenHeader(title = "Settings")
 
-        SectionTitle("Permissions")
-        PermissionRow("Fine location", state.hasFineLocation, onRequestFineLocation)
-        PermissionRow("Background location", state.hasBackgroundLocation, onRequestBackgroundLocation)
-        PermissionRow("Usage access", state.hasUsageAccess, onOpenUsageAccess)
-        PermissionRow(
-            "Ignore battery optimizations",
-            state.ignoringBatteryOptimizations,
-            onOpenBatteryOpt,
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            OutlinedButton(onClick = onRequestNotifications, modifier = Modifier.fillMaxWidth()) {
-                Text("Request notification permission")
+        state.feedback?.let { message ->
+            SoftCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = message,
+                        color = if (state.feedbackIsError) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onClearFeedback) { Text("OK") }
+                }
             }
         }
-        OutlinedButton(onClick = onOpenAppDetails, modifier = Modifier.fillMaxWidth()) {
-            Text("Open app settings (Autostart on ColorOS)")
+
+        SoftCard {
+            Text("Schedule", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = state.settings.goalMode == BedtimeGoalMode.FIXED_CLOCK,
+                    onClick = { onGoalMode(BedtimeGoalMode.FIXED_CLOCK) },
+                    label = { Text("Fixed time") },
+                )
+                FilterChip(
+                    selected = state.settings.goalMode == BedtimeGoalMode.MINUTES_BEFORE_SUNRISE,
+                    onClick = { onGoalMode(BedtimeGoalMode.MINUTES_BEFORE_SUNRISE) },
+                    label = { Text("Before sunrise") },
+                )
+            }
+
+            when (state.settings.goalMode) {
+                BedtimeGoalMode.FIXED_CLOCK -> {
+                    val minutes = state.settings.fixedGoalMinutesFromMidnight
+                    OutlinedButton(
+                        onClick = onPickGoalTime,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    ) {
+                        Text(
+                            text = "%02d:%02d".format(minutes / 60, minutes % 60),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
+                }
+                BedtimeGoalMode.MINUTES_BEFORE_SUNRISE -> {
+                    val m = state.settings.minutesBeforeSunrise
+                    Text(
+                        text = "$m min before sunrise",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    Slider(
+                        value = m.toFloat(),
+                        onValueChange = {
+                            onBeforeSunrise((it / 15f).roundToInt() * 15)
+                        },
+                        valueRange = 15f..(6 * 60).toFloat(),
+                        steps = 22,
+                    )
+                }
+            }
         }
 
-        SectionTitle("Home geofence")
-        Text(
-            text = state.home?.let {
-                "Home @ %.5f, %.5f (±%.0fm)".format(Locale.US, it.latitude, it.longitude, it.radiusMeters)
-            } ?: "Not set",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Button(
-            onClick = onUseCurrentAsHome,
-            enabled = state.hasFineLocation,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        SoftCard {
+            Text("Places", style = MaterialTheme.typography.titleMedium)
             Text(
-                if (state.home == null) {
-                    "Use current location as Home"
-                } else {
-                    "Overwrite Home with current location"
-                },
+                text = if (state.home == null) "Home not set" else "Home set",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
             )
-        }
-        if (state.home != null) {
-            OutlinedButton(
-                onClick = onClearHome,
+            Button(
+                onClick = onUseCurrentAsHome,
+                enabled = state.hasFineLocation,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Clear Home")
+                Text(if (state.home == null) "Set Home" else "Update Home")
+            }
+            if (state.home != null) {
+                OutlinedButton(
+                    onClick = onClearHome,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                ) {
+                    Text("Clear Home")
+                }
             }
         }
 
-        SectionTitle("Bedtime goal")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = state.settings.goalMode == BedtimeGoalMode.FIXED_CLOCK,
-                onClick = { onGoalMode(BedtimeGoalMode.FIXED_CLOCK) },
-                label = { Text("Fixed clock") },
-            )
-            FilterChip(
-                selected = state.settings.goalMode == BedtimeGoalMode.MINUTES_BEFORE_SUNRISE,
-                onClick = { onGoalMode(BedtimeGoalMode.MINUTES_BEFORE_SUNRISE) },
-                label = { Text("Before sunrise") },
-            )
-        }
-
-        when (state.settings.goalMode) {
-            BedtimeGoalMode.FIXED_CLOCK -> {
-                val minutes = state.settings.fixedGoalMinutesFromMidnight
-                Text("Goal time: %02d:%02d".format(minutes / 60, minutes % 60))
-                Slider(
-                    value = minutes.toFloat(),
-                    onValueChange = { onFixedMinutes(it.roundToInt()) },
-                    valueRange = 0f..(24 * 60 - 1).toFloat(),
+        SoftCard {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onTogglePermissions),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Permissions", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = if (state.permissionsReady) {
+                            "Ready"
+                        } else {
+                            "${state.neededPermissionCount} needed"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (state.permissionsReady) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
+                    )
+                }
+                Text(
+                    text = if (state.permissionsExpanded) "Hide" else "Show",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            BedtimeGoalMode.MINUTES_BEFORE_SUNRISE -> {
-                val m = state.settings.minutesBeforeSunrise
-                Text("$m minutes before sunrise")
-                Slider(
-                    value = m.toFloat(),
-                    onValueChange = { onBeforeSunrise(it.roundToInt()) },
-                    valueRange = 15f..(6 * 60).toFloat(),
-                )
+
+            AnimatedVisibility(visible = state.permissionsExpanded) {
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    PermissionRow("Location", state.hasFineLocation, onRequestFineLocation)
+                    PermissionRow("Background location", state.hasBackgroundLocation, onRequestBackgroundLocation)
+                    PermissionRow("Usage access", state.hasUsageAccess, onOpenUsageAccess)
+                    PermissionRow("Notifications", state.hasNotificationPermission, onRequestNotifications)
+                    PermissionRow(
+                        "Unrestricted battery",
+                        state.ignoringBatteryOptimizations,
+                        onOpenBatteryOpt,
+                    )
+                }
+            }
+        }
+
+        SoftCard {
+            Text("System", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "ColorOS may still need Autostart or battery exceptions.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+            )
+            OutlinedButton(onClick = onOpenAppDetails, modifier = Modifier.fillMaxWidth()) {
+                Text("App settings")
             }
         }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(top = 8.dp),
-    )
 }
 
 @Composable
@@ -214,6 +302,7 @@ private fun PermissionRow(label: String, granted: Boolean, onAction: () -> Unit)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
@@ -228,7 +317,7 @@ private fun PermissionRow(label: String, granted: Boolean, onAction: () -> Unit)
             )
         }
         if (!granted) {
-            OutlinedButton(onClick = onAction) { Text("Fix") }
+            OutlinedButton(onClick = onAction) { Text("Allow") }
         }
     }
 }

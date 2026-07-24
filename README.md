@@ -67,10 +67,10 @@ flowchart TB
 
 ## Modern practices used (and why)
 
-- **Type-safe Navigation** — no string route typos; `composable<AppDestination.Today>`
+- **Type-safe Navigation** — no string route typos; `composable<AppDestination.Tonight>`
 - **`LifecycleEventEffect`** — replaces `DisposableEffect` + `LifecycleEventObserver` boilerplate
 - **`collectAsStateWithLifecycle`** — UI collects only while started
-- **Room `fallbackToDestructiveMigration(dropAllTables = true)`** — Room 2.7+ API
+- **Room `Migration` 1→2** — nullable `goalAtStart` without wiping personal history
 - **Room Gradle plugin `schemaDirectory`** — replaces legacy KSP `room.schemaLocation`
 - **`kotlin { compilerOptions { jvmTarget } }`** — replaces deprecated `android.kotlinOptions`
 - **UsageStats `ACTIVITY_RESUMED/PAUSED` only** — `MOVE_TO_*` events are deprecated
@@ -86,16 +86,20 @@ cd sleep-roulette
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Open **Setup** first:
+Open **Settings** first:
 
 1. Fine location → Background location  
 2. Usage access  
 3. Ignore battery optimizations  
 4. ColorOS Autostart (App settings)  
-5. **Use current location as Home** (or **Clear Home** / overwrite when needed)  
-6. Set bedtime goal  
+5. **Set Home** / **Update Home** / **Clear Home**  
+6. Set bedtime goal under Schedule  
 
-From **Today**, tap **I'm home** to manually start the countdown while testing geofences.
+From **Tonight**, use overflow **Start wind-down** to manually start the countdown while testing geofences.
+
+## Navigation
+
+**Tonight · Log · Trends · Settings** — adaptive Momo-inspired theme (cream / ink + pastel accents).
 
 ## Tests
 
@@ -103,7 +107,7 @@ From **Today**, tap **I'm home** to manually start the countdown while testing g
 ./gradlew :app:testDebugUnitTest
 ```
 
-Domain tests cover sunrise math and bedtime nudge policy — the parts that are easy to get wrong and easy to verify without a device.
+Domain tests cover sunrise math, bedtime nudge policy, Tonight state derivation, goal-hit / Home→bed analytics, and session edit validation.
 
 ## Repo
 

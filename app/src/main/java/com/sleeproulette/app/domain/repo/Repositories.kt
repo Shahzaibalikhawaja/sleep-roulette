@@ -25,12 +25,17 @@ interface LifeEventRepository {
     fun observeRecent(limit: Int = 100): Flow<List<LifeEvent>>
     suspend fun record(type: LifeEventType, at: Instant = Instant.now(), payloadJson: String? = null)
     suspend fun latestOf(type: LifeEventType): LifeEvent?
+    suspend fun ofTypeSince(type: LifeEventType, since: Instant): List<LifeEvent>
 }
 
 interface SleepSessionRepository {
     fun observeSessions(): Flow<List<SleepSession>>
     fun observeOngoing(): Flow<SleepSession?>
-    suspend fun start(source: com.sleeproulette.app.domain.model.SleepSource, at: Instant = Instant.now()): Long
+    suspend fun start(
+        source: com.sleeproulette.app.domain.model.SleepSource,
+        at: Instant = Instant.now(),
+        goalAtStart: Instant? = null,
+    ): Long
     suspend fun endOngoing(at: Instant = Instant.now())
     suspend fun upsert(session: SleepSession): Long
     suspend fun delete(id: Long)

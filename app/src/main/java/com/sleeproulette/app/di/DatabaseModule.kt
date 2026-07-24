@@ -2,6 +2,7 @@ package com.sleeproulette.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.sleeproulette.app.data.local.MIGRATION_1_2
 import com.sleeproulette.app.data.local.SleepRouletteDatabase
 import com.sleeproulette.app.data.local.dao.LifeEventDao
 import com.sleeproulette.app.data.local.dao.PlaceDao
@@ -25,9 +26,7 @@ object DatabaseModule {
             SleepRouletteDatabase::class.java,
             "sleep_roulette.db",
         )
-            // Room 2.7+: explicit dropAllTables. Fine for personal MVP; add real
-            // Migration / AutoMigration before any data you care about keeping.
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides

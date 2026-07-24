@@ -7,34 +7,68 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Night-forward palette — deep slate, cool blue accent (not purple-default AI look).
-private val NightBlue = Color(0xFF5B8DEF)
-private val NightBg = Color(0xFF0B1220)
-private val NightSurface = Color(0xFF152036)
-private val NightOn = Color(0xFFE8EEF8)
-private val DawnAmber = Color(0xFFE0A45C)
-
-private val DarkColors = darkColorScheme(
-    primary = NightBlue,
+private val LightColors = lightColorScheme(
+    primary = SleepRouletteColors.PowderBlueDeep,
     onPrimary = Color.White,
-    secondary = DawnAmber,
-    onSecondary = Color(0xFF1A1208),
-    background = NightBg,
-    onBackground = NightOn,
-    surface = NightSurface,
-    onSurface = NightOn,
-    surfaceVariant = Color(0xFF1E2A42),
-    onSurfaceVariant = Color(0xFFB7C2D6),
+    primaryContainer = SleepRouletteColors.PowderBlue.copy(alpha = 0.35f),
+    onPrimaryContainer = SleepRouletteColors.Ink,
+    secondary = SleepRouletteColors.BlushDeep,
+    onSecondary = Color.White,
+    secondaryContainer = SleepRouletteColors.Blush.copy(alpha = 0.35f),
+    onSecondaryContainer = SleepRouletteColors.Ink,
+    tertiary = SleepRouletteColors.LavenderDeep,
+    onTertiary = Color.White,
+    tertiaryContainer = SleepRouletteColors.Lavender.copy(alpha = 0.35f),
+    onTertiaryContainer = SleepRouletteColors.Ink,
+    background = SleepRouletteColors.Cream,
+    onBackground = SleepRouletteColors.Ink,
+    surface = SleepRouletteColors.Cloud,
+    onSurface = SleepRouletteColors.Ink,
+    surfaceVariant = SleepRouletteColors.CreamSoft,
+    onSurfaceVariant = SleepRouletteColors.Stone,
+    outline = SleepRouletteColors.Mist,
+    outlineVariant = SleepRouletteColors.Mist,
+    error = SleepRouletteColors.Coral,
+    onError = Color.White,
+    errorContainer = SleepRouletteColors.Coral.copy(alpha = 0.2f),
+    onErrorContainer = SleepRouletteColors.Ink,
+    inverseSurface = SleepRouletteColors.Ink,
+    inverseOnSurface = SleepRouletteColors.Cream,
+    inversePrimary = SleepRouletteColors.PowderBlue,
+    surfaceTint = SleepRouletteColors.PowderBlueDeep,
+    scrim = Color.Black.copy(alpha = 0.4f),
 )
 
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF2F5FB8),
-    onPrimary = Color.White,
-    secondary = Color(0xFF9A6A2F),
-    background = Color(0xFFF3F6FB),
-    onBackground = Color(0xFF121826),
-    surface = Color.White,
-    onSurface = Color(0xFF121826),
+private val DarkColors = darkColorScheme(
+    primary = SleepRouletteColors.PowderBlue,
+    onPrimary = SleepRouletteColors.Ink,
+    primaryContainer = SleepRouletteColors.PowderBlueDeep.copy(alpha = 0.35f),
+    onPrimaryContainer = SleepRouletteColors.NightOn,
+    secondary = SleepRouletteColors.Blush,
+    onSecondary = SleepRouletteColors.Ink,
+    secondaryContainer = SleepRouletteColors.BlushDeep.copy(alpha = 0.3f),
+    onSecondaryContainer = SleepRouletteColors.NightOn,
+    tertiary = SleepRouletteColors.Lavender,
+    onTertiary = SleepRouletteColors.Ink,
+    tertiaryContainer = SleepRouletteColors.LavenderDeep.copy(alpha = 0.3f),
+    onTertiaryContainer = SleepRouletteColors.NightOn,
+    background = SleepRouletteColors.NightBg,
+    onBackground = SleepRouletteColors.NightOn,
+    surface = SleepRouletteColors.NightSurface,
+    onSurface = SleepRouletteColors.NightOn,
+    surfaceVariant = SleepRouletteColors.NightSurfaceVariant,
+    onSurfaceVariant = SleepRouletteColors.NightMuted,
+    outline = SleepRouletteColors.InkSoft,
+    outlineVariant = SleepRouletteColors.NightSurfaceVariant,
+    error = SleepRouletteColors.Coral,
+    onError = SleepRouletteColors.Ink,
+    errorContainer = SleepRouletteColors.Coral.copy(alpha = 0.25f),
+    onErrorContainer = SleepRouletteColors.NightOn,
+    inverseSurface = SleepRouletteColors.Cream,
+    inverseOnSurface = SleepRouletteColors.Ink,
+    inversePrimary = SleepRouletteColors.PowderBlueDeep,
+    surfaceTint = SleepRouletteColors.PowderBlue,
+    scrim = Color.Black.copy(alpha = 0.55f),
 )
 
 @Composable

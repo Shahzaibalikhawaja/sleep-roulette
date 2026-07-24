@@ -3,6 +3,7 @@ package com.sleeproulette.app.ui.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sleeproulette.app.domain.model.LifeEventType
+import com.sleeproulette.app.domain.model.Place
 import com.sleeproulette.app.domain.model.PlaceKind
 import com.sleeproulette.app.domain.model.SleepSession
 import com.sleeproulette.app.domain.model.SleepSource
@@ -12,6 +13,8 @@ import com.sleeproulette.app.domain.repo.LifeEventRepository
 import com.sleeproulette.app.domain.repo.PlaceRepository
 import com.sleeproulette.app.domain.repo.SettingsRepository
 import com.sleeproulette.app.domain.repo.SleepSessionRepository
+import com.sleeproulette.app.domain.tonight.TonightPhase
+import com.sleeproulette.app.domain.tonight.TonightStateModel
 import com.sleeproulette.app.notify.SleepCountdownController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -30,10 +33,19 @@ import javax.inject.Inject
 data class TodayUiState(
     val settings: UserSettings = UserSettings(),
     val hasHome: Boolean = false,
+    val phase: TonightPhase = TonightPhase.Away,
     val window: BedtimePolicy.SleepWindow? = null,
     val remaining: Duration = Duration.ZERO,
     val ongoingSleep: SleepSession? = null,
+    val lastCompleted: SleepSession? = null,
     val now: Instant = Instant.now(),
+)
+
+private data class TonightCore(
+    val settings: UserSettings,
+    val places: List<Place>,
+    val ongoing: SleepSession?,
+    val lastCompleted: SleepSession?,
 )
 
 @HiltViewModel
@@ -47,33 +59,56 @@ class TodayViewModel @Inject constructor(
 
     private val tick = MutableStateFlow(Instant.now())
 
-    private val latestHomeArrival = lifeEventRepository
-        .observeRecent(limit = 50)
-        .map { events -> events.firstOrNull { it.type == LifeEventType.ENTER_HOME }?.occurredAt }
+    private val homeTransitions = lifeEventRepository
+        .observeRecent(limit = 80)
+        .map { events ->
+            val enter = events.firstOrNull { it.type == LifeEventType.ENTER_HOME }?.occurredAt
+            val exit = events.firstOrNull { it.type == LifeEventType.EXIT_HOME }?.occurredAt
+            enter to exit
+        }
 
-    val uiState: StateFlow<TodayUiState> = combine(
+    private val lastCompleted = sleepSessionRepository
+        .observeSessions()
+        .map { sessions -> sessions.firstOrNull { it.endAt != null } }
+
+    private val core = combine(
         settingsRepository.settings,
         placeRepository.observePlaces(),
         sleepSessionRepository.observeOngoing(),
-        latestHomeArrival,
+        lastCompleted,
+    ) { settings, places, ongoing, completed ->
+        TonightCore(settings, places, ongoing, completed)
+    }
+
+    val uiState: StateFlow<TodayUiState> = combine(
+        core,
+        homeTransitions,
         tick,
-    ) { settings, places, ongoing, arrived, now ->
-        val home = places.firstOrNull { it.kind == PlaceKind.HOME }
-        val window = home?.let {
-            BedtimePolicy.resolveSleepWindow(
-                settings = settings,
-                homeLatitude = it.latitude,
-                homeLongitude = it.longitude,
-                arrivedHomeAt = arrived,
-                now = now,
-            )
-        }
+    ) { coreState, transitions, now ->
+        val (enter, exit) = transitions
+        val home = coreState.places.firstOrNull { it.kind == PlaceKind.HOME }
+        val window = BedtimePolicy.resolveSleepWindow(
+            settings = coreState.settings,
+            homeLatitude = home?.latitude ?: 0.0,
+            homeLongitude = home?.longitude ?: 0.0,
+            arrivedHomeAt = enter,
+            now = now,
+        )
+        val phase = TonightStateModel.derive(
+            ongoing = coreState.ongoing,
+            lastCompleted = coreState.lastCompleted,
+            latestEnterHome = enter,
+            latestExitHome = exit,
+            now = now,
+        )
         TodayUiState(
-            settings = settings,
+            settings = coreState.settings,
             hasHome = home != null,
+            phase = phase,
             window = window,
-            remaining = window?.remaining(now) ?: Duration.ZERO,
-            ongoingSleep = ongoing,
+            remaining = window.remaining(now),
+            ongoingSleep = coreState.ongoing,
+            lastCompleted = coreState.lastCompleted,
             now = now,
         )
     }.stateIn(
@@ -86,14 +121,19 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             while (isActive) {
                 tick.value = Instant.now()
-                delay(1_000)
+                delay(60_000)
             }
         }
     }
 
     fun startSleep() {
         viewModelScope.launch {
-            sleepSessionRepository.start(SleepSource.MANUAL)
+            val goalInstant = uiState.value.window?.goalBedtime?.toInstant()
+            sleepSessionRepository.start(
+                source = SleepSource.MANUAL,
+                goalAtStart = goalInstant,
+            )
+            countdownController.stop()
         }
     }
 
@@ -103,7 +143,7 @@ class TodayViewModel @Inject constructor(
         }
     }
 
-    fun simulateArrivedHome() {
+    fun startWindDown() {
         viewModelScope.launch {
             lifeEventRepository.record(LifeEventType.ENTER_HOME)
             countdownController.startManually()

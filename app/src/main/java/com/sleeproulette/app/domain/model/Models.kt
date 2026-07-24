@@ -29,6 +29,8 @@ data class SleepSession(
     val endAt: Instant?,
     val source: SleepSource,
     val notes: String? = null,
+    /** Goal bedtime instant captured when sleep started; null for legacy rows. */
+    val goalAtStart: Instant? = null,
 ) {
     val isOngoing: Boolean get() = endAt == null
 
@@ -63,5 +65,6 @@ data class ConsistencyStats(
     val averageDurationHours: Double?,
     val medianHomeToBedMinutes: Long?,
     val goalHitRate: Double?,
-    val currentStreak: Int,
+    /** Consecutive nights that hit the goal (not mere logging streak). */
+    val goalHitStreak: Int,
 )

@@ -17,9 +17,9 @@ import com.sleeproulette.app.domain.model.SleepSource
 import com.sleeproulette.app.domain.repo.LifeEventRepository
 import com.sleeproulette.app.domain.repo.PlaceRepository
 import com.sleeproulette.app.domain.repo.SleepSessionRepository
+import com.sleeproulette.app.domain.trends.TrendsAnalytics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -58,11 +58,15 @@ class LifeEventRepositoryImpl @Inject constructor(
 
     override suspend fun latestOf(type: LifeEventType): LifeEvent? =
         lifeEventDao.latestOf(type)?.toDomain()
+
+    override suspend fun ofTypeSince(type: LifeEventType, since: Instant): List<LifeEvent> =
+        lifeEventDao.ofTypeSince(type, since).map { it.toDomain() }
 }
 
 @Singleton
 class SleepSessionRepositoryImpl @Inject constructor(
     private val sleepSessionDao: SleepSessionDao,
+    private val lifeEventDao: LifeEventDao,
 ) : SleepSessionRepository {
     override fun observeSessions(): Flow<List<SleepSession>> =
         sleepSessionDao.observeAll().map { list -> list.map { it.toDomain() } }
@@ -70,11 +74,16 @@ class SleepSessionRepositoryImpl @Inject constructor(
     override fun observeOngoing(): Flow<SleepSession?> =
         sleepSessionDao.observeOngoing().map { it?.toDomain() }
 
-    override suspend fun start(source: SleepSource, at: Instant): Long {
+    override suspend fun start(source: SleepSource, at: Instant, goalAtStart: Instant?): Long {
         // End any dangling session first — avoids duplicate "ongoing" rows.
         endOngoing(at)
         return sleepSessionDao.insert(
-            SleepSessionEntity(startAt = at, endAt = null, source = source),
+            SleepSessionEntity(
+                startAt = at,
+                endAt = null,
+                source = source,
+                goalAtStart = goalAtStart,
+            ),
         )
     }
 
@@ -89,39 +98,17 @@ class SleepSessionRepositoryImpl @Inject constructor(
     override suspend fun delete(id: Long) = sleepSessionDao.delete(id)
 
     override suspend fun stats(since: Instant): ConsistencyStats {
-        val sessions = sleepSessionDao.completedSince(since)
-        val durations = sessions.mapNotNull { s ->
-            s.endAt?.let { Duration.between(s.startAt, it).toMinutes() }
-        }
-        val avgHours = durations.takeIf { it.isNotEmpty() }
-            ?.average()
-            ?.div(60.0) // minutes → hours; based on session startAt→endAt only
-
-
-        // home→bed median + real goal hit rate need ENTER_HOME joins / goal snapshots.
-        // Ship averages + streak first; refine analytics in a follow-up.
+        val sessions = sleepSessionDao.completedSince(since).map { it.toDomain() }
+        val enterHomes = lifeEventDao
+            .ofTypeSince(LifeEventType.ENTER_HOME, since.minus(TrendsAnalytics.HomeMatchWindow))
+            .map { it.toDomain() }
+        val snapshot = TrendsAnalytics.compute(sessions, enterHomes)
         return ConsistencyStats(
-            nightCount = sessions.size,
-            averageDurationHours = avgHours,
-            medianHomeToBedMinutes = null,
-            goalHitRate = null,
-            currentStreak = computeStreak(sessions),
+            nightCount = snapshot.nightCount,
+            averageDurationHours = snapshot.averageDurationHours,
+            medianHomeToBedMinutes = snapshot.medianHomeToBedMinutes,
+            goalHitRate = snapshot.goalHitRate,
+            goalHitStreak = snapshot.goalHitStreak,
         )
-    }
-
-    private fun computeStreak(sessions: List<SleepSessionEntity>): Int {
-        if (sessions.isEmpty()) return 0
-        // Count consecutive calendar nights ending with the most recent session.
-        val nights = sessions
-            .mapNotNull { it.endAt }
-            .map { it.atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
-            .distinct()
-            .sortedDescending()
-        if (nights.isEmpty()) return 0
-        var streak = 1
-        for (i in 0 until nights.lastIndex) {
-            if (nights[i].minusDays(1) == nights[i + 1]) streak++ else break
-        }
-        return streak
     }
 }

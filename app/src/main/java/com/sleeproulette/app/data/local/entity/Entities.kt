@@ -45,4 +45,6 @@ data class SleepSessionEntity(
     val endAt: Instant?,
     val source: SleepSource,
     val notes: String? = null,
+    /** Nullable for pre-migration rows; new sessions should snapshot goal. */
+    val goalAtStart: Instant? = null,
 )

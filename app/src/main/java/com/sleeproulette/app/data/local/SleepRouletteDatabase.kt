@@ -16,7 +16,7 @@ import com.sleeproulette.app.data.local.entity.SleepSessionEntity
         LifeEventEntity::class,
         SleepSessionEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

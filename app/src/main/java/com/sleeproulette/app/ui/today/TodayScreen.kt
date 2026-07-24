@@ -2,19 +2,15 @@ package com.sleeproulette.app.ui.today
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,6 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sleeproulette.app.domain.tonight.TonightPhase
+import com.sleeproulette.app.ui.components.OverflowMenu
+import com.sleeproulette.app.ui.components.ScreenHeader
+import com.sleeproulette.app.ui.components.SoftCard
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -35,7 +35,7 @@ fun TodayRoute(
         state = state,
         onStartSleep = viewModel::startSleep,
         onEndSleep = viewModel::endSleep,
-        onSimulateHome = viewModel::simulateArrivedHome,
+        onStartWindDown = viewModel::startWindDown,
     )
 }
 
@@ -44,144 +44,165 @@ fun TodayScreen(
     state: TodayUiState,
     onStartSleep: () -> Unit,
     onEndSleep: () -> Unit,
-    onSimulateHome: () -> Unit,
+    onStartWindDown: () -> Unit,
 ) {
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
     val startedFmt = DateTimeFormatter.ofPattern("HH:mm")
         .withZone(ZoneId.systemDefault())
-    val sleeping = state.ongoingSleep != null
-    val sleepElapsed = state.ongoingSleep?.let { session ->
-        Duration.between(session.startAt, state.now).coerceAtLeast(Duration.ZERO)
-    }
+    val dateTimeFmt = DateTimeFormatter.ofPattern("EEE HH:mm")
+        .withZone(ZoneId.systemDefault())
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = "Sleep Roulette",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = when {
-                    sleeping -> "Sleep in progress — timer runs from when you tapped Start"
-                    state.hasHome -> "Your sleep window for tonight"
-                    else -> "Set Home in Setup to unlock countdown + geofence"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        RoundedCornerShape(20.dp),
+        ScreenHeader(
+            title = "Tonight",
+            subtitle = phaseSubtitle(state.phase),
+            actions = {
+                if (state.phase != TonightPhase.Sleeping && state.hasHome) {
+                    OverflowMenu(
+                        items = listOf(
+                            "Start wind-down" to onStartWindDown,
+                        ),
                     )
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center,
+                }
+            },
+        )
+
+        SoftCard {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (sleeping && sleepElapsed != null) {
+                when (state.phase) {
+                    TonightPhase.Sleeping -> {
+                        val elapsed = state.ongoingSleep?.let {
+                            Duration.between(it.startAt, state.now).coerceAtLeast(Duration.ZERO)
+                        } ?: Duration.ZERO
                         Text(
-                            text = formatClock(sleepElapsed),
-                            style = MaterialTheme.typography.displayLarge,
+                            text = formatHoursMinutes(elapsed),
+                            style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "asleep (since ${startedFmt.format(state.ongoingSleep!!.startAt)})",
+                            text = "since ${startedFmt.format(state.ongoingSleep!!.startAt)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    } else {
+                    }
+                    TonightPhase.WindDown -> {
                         Text(
-                            text = formatCountdown(state.remaining),
-                            style = MaterialTheme.typography.displayLarge,
+                            text = formatHoursMinutes(state.remaining.abs()),
+                            style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = if (state.remaining.isNegative || state.remaining.isZero) {
-                                "past goal bedtime"
+                                "past goal"
                             } else {
-                                "until goal bedtime"
+                                "until goal"
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    val window = state.window
-                    if (window != null) {
+                    TonightPhase.Complete -> {
+                        val last = state.lastCompleted
+                        if (last?.endAt != null) {
+                            val duration = Duration.between(last.startAt, last.endAt)
+                            Text(
+                                text = formatHoursMinutes(duration),
+                                style = MaterialTheme.typography.displayMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "${dateTimeFmt.format(last.startAt)} → ${startedFmt.format(last.endAt)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    TonightPhase.Away -> {
+                        val window = state.window
                         Text(
-                            text = "Goal ${window.goalBedtime.format(timeFmt)}" +
-                                (window.sunrise?.let { " · Sunrise ${it.format(timeFmt)}" } ?: ""),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text = window?.goalBedtime?.format(timeFmt) ?: "—",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "next goal",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-            }
 
-            if (sleeping) {
+                val window = state.window
+                if (window != null && state.phase != TonightPhase.Sleeping) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = buildString {
+                            if (state.phase == TonightPhase.Complete || state.phase == TonightPhase.Away) {
+                                append("Tonight ${window.goalBedtime.format(timeFmt)}")
+                            } else {
+                                append("Goal ${window.goalBedtime.format(timeFmt)}")
+                            }
+                            window.sunrise?.let { append(" · Sunrise ${it.format(timeFmt)}") }
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+
+        when (state.phase) {
+            TonightPhase.Sleeping -> {
                 Button(
                     onClick = onEndSleep,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("I'm awake — end sleep")
+                    Text("Wake up")
                 }
-            } else {
+            }
+            TonightPhase.Away,
+            TonightPhase.WindDown,
+            TonightPhase.Complete,
+            -> {
                 Button(
                     onClick = onStartSleep,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Start sleep now")
+                    Text("Start sleep")
                 }
-            }
-
-            OutlinedButton(
-                onClick = onSimulateHome,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = state.hasHome,
-            ) {
-                Text("I'm home (start countdown)")
-            }
-
-            TextButton(onClick = { /* nav hint */ }) {
-                Text(
-                    text = "Tip: disable battery optimization for Sleep Roulette on ColorOS",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
 }
 
-/** Elapsed / countdown as HH:MM:SS from a non-negative duration. */
-private fun formatClock(duration: Duration): String {
-    val total = duration.seconds.coerceAtLeast(0)
-    val h = total / 3600
-    val m = (total % 3600) / 60
-    val s = total % 60
-    return "%02d:%02d:%02d".format(h, m, s)
+private fun phaseSubtitle(phase: TonightPhase): String = when (phase) {
+    TonightPhase.Away -> "Away"
+    TonightPhase.WindDown -> "Wind-down"
+    TonightPhase.Sleeping -> "Sleeping"
+    TonightPhase.Complete -> "Rest logged"
 }
 
-/**
- * Countdown to goal. When past goal, show how long past (not a fake sleep duration).
- */
-private fun formatCountdown(duration: Duration): String {
-    if (duration.isNegative || duration.isZero) {
-        return formatClock(duration.abs())
+/** Calm H/M display — no ticking seconds. */
+private fun formatHoursMinutes(duration: Duration): String {
+    val totalMinutes = duration.toMinutes().coerceAtLeast(0)
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return when {
+        hours == 0L -> "${minutes}m"
+        minutes == 0L -> "${hours}h"
+        else -> "${hours}h ${minutes}m"
     }
-    return formatClock(duration)
 }
