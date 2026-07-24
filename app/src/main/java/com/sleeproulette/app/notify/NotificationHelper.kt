@@ -11,10 +11,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.sleeproulette.app.MainActivity
 import com.sleeproulette.app.R
+import com.sleeproulette.app.domain.time.AppTimeFormat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,8 +28,6 @@ class NotificationHelper @Inject constructor(
         const val ID_COUNTDOWN = 1001
         const val ID_NUDGE = 1002
     }
-
-    private val timeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -59,11 +57,12 @@ class NotificationHelper @Inject constructor(
         goal: ZonedDateTime,
         sunrise: ZonedDateTime?,
         remaining: Duration,
+        use24HourClock: Boolean = true,
     ): Notification {
         val remainingText = formatDuration(remaining)
-        val sunriseText = sunrise?.format(timeFmt) ?: "—"
+        val sunriseText = sunrise?.let { AppTimeFormat.formatTemporal(it, use24HourClock) } ?: "—"
         val content = context.getString(R.string.goal_bedtime) +
-            ": ${goal.format(timeFmt)}  ·  " +
+            ": ${AppTimeFormat.formatTemporal(goal, use24HourClock)}  ·  " +
             context.getString(R.string.sunrise) +
             ": $sunriseText"
 

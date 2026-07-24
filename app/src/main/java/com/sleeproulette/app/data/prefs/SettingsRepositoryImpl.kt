@@ -1,6 +1,7 @@
 package com.sleeproulette.app.data.prefs
 
 import android.content.Context
+import android.text.format.DateFormat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -34,6 +35,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val BEFORE_SUNRISE = intPreferencesKey("minutes_before_sunrise")
         val USAGE_THRESHOLD = intPreferencesKey("usage_nudge_threshold")
         val BATTERY_ACK = booleanPreferencesKey("battery_opt_ack")
+        val USE_24H = booleanPreferencesKey("use_24_hour_clock")
     }
 
     override val settings: Flow<UserSettings> =
@@ -50,6 +52,7 @@ class SettingsRepositoryImpl @Inject constructor(
             prefs[Keys.BEFORE_SUNRISE] = next.minutesBeforeSunrise
             prefs[Keys.USAGE_THRESHOLD] = next.usageNudgeThresholdMinutes
             prefs[Keys.BATTERY_ACK] = next.batteryOptimizationAcknowledged
+            prefs[Keys.USE_24H] = next.use24HourClock
         }
     }
 
@@ -65,6 +68,8 @@ class SettingsRepositoryImpl @Inject constructor(
             minutesBeforeSunrise = this[Keys.BEFORE_SUNRISE] ?: 90,
             usageNudgeThresholdMinutes = this[Keys.USAGE_THRESHOLD] ?: 10,
             batteryOptimizationAcknowledged = this[Keys.BATTERY_ACK] ?: false,
+            // First launch follows system clock; after that the stored choice wins.
+            use24HourClock = this[Keys.USE_24H] ?: DateFormat.is24HourFormat(context),
         )
     }
 }

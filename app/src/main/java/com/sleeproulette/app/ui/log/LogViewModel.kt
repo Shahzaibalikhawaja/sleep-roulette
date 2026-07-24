@@ -3,12 +3,14 @@ package com.sleeproulette.app.ui.log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sleeproulette.app.domain.model.SleepSession
+import com.sleeproulette.app.domain.repo.SettingsRepository
 import com.sleeproulette.app.domain.repo.SleepSessionRepository
 import com.sleeproulette.app.domain.trends.TrendsAnalytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -16,6 +18,7 @@ import javax.inject.Inject
 
 data class LogUiState(
     val sessions: List<SleepSession> = emptyList(),
+    val use24HourClock: Boolean = true,
     val editing: SleepSession? = null,
     val editError: String? = null,
     val confirmDeleteId: Long? = null,
@@ -24,6 +27,7 @@ data class LogUiState(
 @HiltViewModel
 class LogViewModel @Inject constructor(
     private val sleepSessionRepository: SleepSessionRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(LogUiState())
@@ -31,10 +35,16 @@ class LogViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            sleepSessionRepository.observeSessions().collect { sessions ->
+            combine(
+                sleepSessionRepository.observeSessions(),
+                settingsRepository.settings,
+            ) { sessions, settings ->
+                sessions to settings.use24HourClock
+            }.collect { (sessions, use24) ->
                 _ui.update { state ->
                     state.copy(
                         sessions = sessions,
+                        use24HourClock = use24,
                         editing = state.editing?.let { edit ->
                             sessions.firstOrNull { it.id == edit.id }?.copy(
                                 startAt = edit.startAt,

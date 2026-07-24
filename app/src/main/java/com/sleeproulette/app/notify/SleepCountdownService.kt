@@ -84,6 +84,7 @@ class SleepCountdownService : Service() {
             goal = window.goalBedtime,
             sunrise = window.sunrise,
             remaining = window.remaining(),
+            use24HourClock = settings.use24HourClock,
         )
         startForeground(NotificationHelper.ID_COUNTDOWN, notification)
     }

@@ -2,7 +2,6 @@ package com.sleeproulette.app.ui.setup
 
 import android.app.TimePickerDialog
 import android.os.Build
-import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -34,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sleeproulette.app.domain.model.BedtimeGoalMode
+import com.sleeproulette.app.domain.time.AppTimeFormat
 import com.sleeproulette.app.ui.components.ScreenHeader
 import com.sleeproulette.app.ui.components.SoftCard
 import kotlin.math.roundToInt
@@ -98,10 +98,11 @@ fun SetupRoute(viewModel: SetupViewModel = hiltViewModel()) {
                 { _, hour, minute -> viewModel.setFixedGoalMinutes(hour * 60 + minute) },
                 minutes / 60,
                 minutes % 60,
-                DateFormat.is24HourFormat(context),
+                state.settings.use24HourClock,
             ).show()
         },
         onBeforeSunrise = viewModel::setMinutesBeforeSunrise,
+        onUse24HourClock = viewModel::setUse24HourClock,
     )
 }
 
@@ -121,7 +122,10 @@ fun SetupScreen(
     onGoalMode: (BedtimeGoalMode) -> Unit,
     onPickGoalTime: () -> Unit,
     onBeforeSunrise: (Int) -> Unit,
+    onUse24HourClock: (Boolean) -> Unit,
 ) {
+    val use24 = state.settings.use24HourClock
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -182,7 +186,7 @@ fun SetupScreen(
                             .padding(top = 12.dp),
                     ) {
                         Text(
-                            text = "%02d:%02d".format(minutes / 60, minutes % 60),
+                            text = AppTimeFormat.formatMinutesFromMidnight(minutes, use24),
                             style = MaterialTheme.typography.titleLarge,
                         )
                     }
@@ -203,6 +207,28 @@ fun SetupScreen(
                         steps = 22,
                     )
                 }
+            }
+        }
+
+        SoftCard {
+            Text("Display", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Clock format",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = use24,
+                    onClick = { onUse24HourClock(true) },
+                    label = { Text("24-hour") },
+                )
+                FilterChip(
+                    selected = !use24,
+                    onClick = { onUse24HourClock(false) },
+                    label = { Text("12-hour") },
+                )
             }
         }
 

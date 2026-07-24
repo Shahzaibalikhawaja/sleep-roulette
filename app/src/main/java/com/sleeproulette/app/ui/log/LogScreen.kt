@@ -2,7 +2,6 @@ package com.sleeproulette.app.ui.log
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sleeproulette.app.domain.model.SleepSession
+import com.sleeproulette.app.domain.time.AppTimeFormat
 import com.sleeproulette.app.ui.components.OverflowMenu
 import com.sleeproulette.app.ui.components.QuietEmpty
 import com.sleeproulette.app.ui.components.ScreenHeader
@@ -66,6 +66,8 @@ fun LogScreen(
 ) {
     val dateFmt = DateTimeFormatter.ofPattern("EEE d MMM")
         .withZone(ZoneId.systemDefault())
+    val timeFmt = AppTimeFormat.timeFormatter(state.use24HourClock)
+    val dateTimeFmt = AppTimeFormat.dateTimeFormatter(state.use24HourClock)
 
     Column(
         modifier = Modifier
@@ -97,9 +99,9 @@ fun LogScreen(
                                 val end = session.endAt
                                 Text(
                                     text = if (end == null) {
-                                        "Sleeping · ${timeOnlyFmt.format(session.startAt)}–"
+                                        "Sleeping · ${timeFmt.format(session.startAt)}–"
                                     } else {
-                                        "${timeOnlyFmt.format(session.startAt)}–${timeOnlyFmt.format(end)} · " +
+                                        "${timeFmt.format(session.startAt)}–${timeFmt.format(end)} · " +
                                             formatDurationHoursMinutes(Duration.between(session.startAt, end))
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
@@ -121,6 +123,8 @@ fun LogScreen(
     state.editing?.let { edit ->
         EditSessionDialog(
             session = edit,
+            use24HourClock = state.use24HourClock,
+            dateTimeFmt = dateTimeFmt,
             error = state.editError,
             onDismiss = onDismissEdit,
             onUpdate = onUpdateEditing,
@@ -149,6 +153,8 @@ fun LogScreen(
 @Composable
 private fun EditSessionDialog(
     session: SleepSession,
+    use24HourClock: Boolean,
+    dateTimeFmt: DateTimeFormatter,
     error: String?,
     onDismiss: () -> Unit,
     onUpdate: (Instant, Instant?) -> Unit,
@@ -157,7 +163,6 @@ private fun EditSessionDialog(
 ) {
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
-    val is24 = DateFormat.is24HourFormat(context)
 
     fun pickDateTime(current: Instant, onPicked: (Instant) -> Unit) {
         val zdt = current.atZone(zone)
@@ -173,7 +178,7 @@ private fun EditSessionDialog(
                     },
                     zdt.hour,
                     zdt.minute,
-                    is24,
+                    use24HourClock,
                 ).show()
             },
             zdt.year,
@@ -240,12 +245,6 @@ private fun EditSessionDialog(
         },
     )
 }
-
-private val timeOnlyFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    .withZone(ZoneId.systemDefault())
-
-private val dateTimeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM HH:mm")
-    .withZone(ZoneId.systemDefault())
 
 private fun formatDurationHoursMinutes(duration: Duration): String {
     val totalMinutes = duration.toMinutes().coerceAtLeast(0)

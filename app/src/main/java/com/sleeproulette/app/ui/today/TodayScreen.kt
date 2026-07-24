@@ -19,12 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sleeproulette.app.domain.tonight.TonightPhase
+import com.sleeproulette.app.domain.time.AppTimeFormat
 import com.sleeproulette.app.ui.components.OverflowMenu
 import com.sleeproulette.app.ui.components.ScreenHeader
 import com.sleeproulette.app.ui.components.SoftCard
 import java.time.Duration
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun TodayRoute(
@@ -46,11 +45,9 @@ fun TodayScreen(
     onEndSleep: () -> Unit,
     onStartWindDown: () -> Unit,
 ) {
-    val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
-    val startedFmt = DateTimeFormatter.ofPattern("HH:mm")
-        .withZone(ZoneId.systemDefault())
-    val dateTimeFmt = DateTimeFormatter.ofPattern("EEE HH:mm")
-        .withZone(ZoneId.systemDefault())
+    val use24 = state.settings.use24HourClock
+    val startedFmt = AppTimeFormat.timeFormatter(use24)
+    val dateTimeFmt = AppTimeFormat.weekdayTimeFormatter(use24)
 
     Column(
         modifier = Modifier
@@ -132,7 +129,9 @@ fun TodayScreen(
                     TonightPhase.Away -> {
                         val window = state.window
                         Text(
-                            text = window?.goalBedtime?.format(timeFmt) ?: "—",
+                            text = window?.goalBedtime?.let {
+                                AppTimeFormat.formatTemporal(it, use24)
+                            } ?: "—",
                             style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -151,11 +150,13 @@ fun TodayScreen(
                     Text(
                         text = buildString {
                             if (state.phase == TonightPhase.Complete || state.phase == TonightPhase.Away) {
-                                append("Tonight ${window.goalBedtime.format(timeFmt)}")
+                                append("Tonight ${AppTimeFormat.formatTemporal(window.goalBedtime, use24)}")
                             } else {
-                                append("Goal ${window.goalBedtime.format(timeFmt)}")
+                                append("Goal ${AppTimeFormat.formatTemporal(window.goalBedtime, use24)}")
                             }
-                            window.sunrise?.let { append(" · Sunrise ${it.format(timeFmt)}") }
+                            window.sunrise?.let {
+                                append(" · Sunrise ${AppTimeFormat.formatTemporal(it, use24)}")
+                            }
                         },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,

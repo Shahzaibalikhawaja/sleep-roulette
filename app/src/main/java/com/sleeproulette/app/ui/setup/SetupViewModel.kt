@@ -189,6 +189,12 @@ class SetupViewModel @Inject constructor(
         }
     }
 
+    fun setUse24HourClock(use24HourClock: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(use24HourClock = use24HourClock) }
+        }
+    }
+
     fun usageAccessIntent(): Intent = usageStatsSampler.usageAccessSettingsIntent()
 
     fun batteryOptimizationIntent(): Intent =

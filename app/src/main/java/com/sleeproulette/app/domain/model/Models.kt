@@ -55,6 +55,8 @@ data class UserSettings(
     /** Phone foreground minutes after goal before nudging. */
     val usageNudgeThresholdMinutes: Int = 10,
     val batteryOptimizationAcknowledged: Boolean = false,
+    /** App-wide clock display; also drives TimePickerDialog is24HourView. */
+    val use24HourClock: Boolean = true,
 ) {
     fun fixedGoalLocalTime(): LocalTime =
         LocalTime.of(fixedGoalMinutesFromMidnight / 60, fixedGoalMinutesFromMidnight % 60)
